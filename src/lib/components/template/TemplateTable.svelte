@@ -304,7 +304,7 @@
 						<td class="text-center">{(currentPage - 1) * itemsPerPage + index + 1}</td>
 						<td class="px-3 py-1 text-sm capitalize">
 							<a
-								href={`/users/${userId}/form-templates/${row.id}/forms`}
+								href={`/users/${userId}/form-templates/${row.id}/dashboard`}
 								class="hover:text-blue-500 hover:underline"
 							>
 								{row.Title || 'Not specified'}
