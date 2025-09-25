@@ -123,10 +123,23 @@ export type QuestionResponseCreateModel = {
 // }
 
 export function createSchema(sections) {
+    console.log('createSchema called with sections:', sections);
+    console.log('sections type:', typeof sections);
+    console.log('sections is array:', Array.isArray(sections));
+    console.log('sections length:', sections?.length);
+    
     let schemaObj = {};
+    let hasRequiredFields = false;
+    
     sections.forEach((section) => {
-        section.Questions?.forEach((q) => {
+        console.log('Processing section:', section);
+        console.log('Section FormFields:', section.FormFields);
+        // Use FormFields instead of Questions for offline forms
+        const questions = section.FormFields || section.Questions || [];
+        questions.forEach((q) => {
+            console.log('Processing question:', q.Title, 'IsRequired:', q.IsRequired);
             if (q.IsRequired) {
+                hasRequiredFields = true;
                 switch (q.ResponseType) {
                     case 'Text':
                     case 'Object':
@@ -220,9 +233,15 @@ export function createSchema(sections) {
         }
     });
 
-    if (Object.keys(schemaObj).length === 0) {
-        console.warn('Schema is empty. Ensure sections have required fields.');
-        return z.object({});
+    console.log('Schema object keys:', Object.keys(schemaObj));
+    console.log('Schema object size:', Object.keys(schemaObj).length);
+    console.log('Has required fields:', hasRequiredFields);
+    
+    if (!hasRequiredFields) {
+        console.warn('No required fields found in form.');
+        console.warn('This is normal if all fields are optional.');
+        // Return an empty schema that allows any object for offline forms with no required fields
+        return z.object({}).passthrough();
     }
     // console.log('schemaObj:----------- ', schemaObj);
     return z.object(schemaObj);
@@ -238,7 +257,8 @@ export async function questionResponseModels(
 
     function extractQuestions(sectionList) {
         return sectionList.flatMap((section) => {
-            const questions = section.Questions || [];
+            // Use FormFields instead of Questions for offline forms
+            const questions = section.FormFields || section.Questions || [];
 
             // Recursively process nested subsections if they exist
             const nestedQuestions = section.Subsections ? extractQuestions(section.Subsections) : [];
@@ -249,10 +269,16 @@ export async function questionResponseModels(
 
     const allQuestions = extractQuestions(sections);
 
+    console.log('questionResponseModels: FormSubmissionId =', FormSubmissionId);
+    console.log('questionResponseModels: FormTemplateId =', FormTemplateId);
+    console.log('questionResponseModels: answers =', answers);
+    
     return allQuestions.map((question) => {
         const key = question.id;
         const value = answers[key];
         const { ResponseType } = question;
+
+        console.log('Processing question:', question.Title, 'key:', key, 'value:', value, 'ResponseType:', ResponseType);
 
         const existingResponse = Array.isArray(questionResponseData) && questionResponseData.length > 0
             ? questionResponseData.find((item) => item.Question.id === key)
@@ -260,7 +286,7 @@ export async function questionResponseModels(
 
         const questionResponseId = existingResponse ? existingResponse.id : null;
 
-        return {
+        const response = {
             id: questionResponseId,
             FormSubmissionId,
             FormTemplateId,
@@ -288,6 +314,9 @@ export async function questionResponseModels(
                 ? (value !== undefined ? value : null)
                 : null,
         };
+        
+        console.log('Generated response for question:', question.Title, ':', response);
+        return response;
     });
 }
 

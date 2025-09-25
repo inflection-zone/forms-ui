@@ -32,6 +32,19 @@
 	const encodedTemplateId = tokens[2];
 	const templateId = atob(encodedTemplateId);
 
+	// Generate a proper 64-character submission key for offline forms
+	function generateSubmissionKey(): string {
+		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		let result = '';
+		for (let i = 0; i < 64; i++) {
+			result += chars.charAt(Math.floor(Math.random() * chars.length));
+		}
+		return result;
+	}
+
+	// Use the code as a session identifier, but generate a proper submission key
+	let submissionKey = generateSubmissionKey();
+
 	let storage = new IndexedDbStorageManager('templates', 'template_list');
 	const STORAGE_KEY = `Submission`;
 	const SESSION_KEY = `sessionId`;
@@ -42,21 +55,36 @@
 	});
 
 	async function getTemplates(templateId: string) {
+		console.log('Loading template for ID:', templateId);
 		const stored = await storage.get(templateId);
+		console.log('Stored template data:', stored);
 		const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
 		template = parsed;
+		console.log('Template parsed and set:', template);
 	}
 
 
 	$effect(() => {
 		if (template) {
+			console.log('Template loaded:', template);
 			if (template?.FormSections) {
 				$inspect(template.FormSections[0].Subsections, 'Root Section Title');
 			}
 			if (template?.Data) {
 				templateInfo = template.Data.FormSections[0].Subsections;
+				console.log('TemplateInfo set:', templateInfo);
+				console.log('TemplateInfo structure:', JSON.stringify(templateInfo, null, 2));
+				console.log('First section:', templateInfo[0]);
+				if (templateInfo[0]) {
+					console.log('First section Questions:', templateInfo[0].Questions);
+					console.log('First section Questions length:', templateInfo[0].Questions?.length);
+				}
 				$inspect(template.Data.FormSections[0].Subsections, 'Template DisplayCode from Data');
+			} else {
+				console.warn('Template.Data not found in template:', template);
 			}
+		} else {
+			console.log('Template not loaded yet');
 		}
 	});
 
@@ -124,6 +152,19 @@
 	async function handleSave(e, showToast = true) {
 		e.preventDefault();
 
+		// Ensure templateInfo is loaded before proceeding
+		if (!templateInfo || !Array.isArray(templateInfo) || templateInfo.length === 0) {
+			console.warn('handleSave: templateInfo not loaded yet, skipping validation');
+			if (showToast) {
+				addToast({
+					message: 'Form template is still loading. Please try again in a moment.',
+					type: 'info',
+					timeout: 3000
+				});
+			}
+			return false;
+		}
+
 		const schema = createSchema(templateInfo);
 		const validationResult = schema.safeParse(answers);
 
@@ -144,22 +185,39 @@
 		errors = {};
 
 		try {
+			console.log('handleSave: Creating question responses with:', {
+				templateInfo: Array.isArray(templateInfo) ? templateInfo.length : 0,
+				answers: Object.keys(answers).length,
+				code,
+				submissionKey: submissionKey.substring(0, 8) + '...',
+				templateId,
+				cached: cached ? 'exists' : 'null'
+			});
+			
 			const questionResponses = await questionResponseModels(
 				templateInfo,
 				answers,
-				code,
+				submissionKey,
 				templateId,
 				cached
 			);
+			
+			console.log('handleSave: Generated question responses:', questionResponses.length);
 
+			const requestBody = {
+				questionResponses,
+				templateId,
+				FormData: answers,
+				formSubmissionKey: submissionKey
+			};
+			
+			console.log('Sending request to question-response API:', requestBody);
+			console.log('Question responses detail:', JSON.stringify(questionResponses, null, 2));
+			
 			const res = await fetch('/api/server/question-response', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					questionResponses,
-					templateId,
-					FormData: answers
-				})
+				body: JSON.stringify(requestBody)
 			});
 
 			const saveData = await res.json();
@@ -226,7 +284,7 @@
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					submissionKey: templateId,
+					submissionKey: submissionKey,
 					FormData: answers,
 					submissionTimestamp
 				})
@@ -285,47 +343,103 @@
 					const formData = cachedSubmit.FormData;
 					answers = formData;
 
-					const saveSuccess = await handleSave({ preventDefault: () => {} }, false);
+					// For sync, we don't have existing question responses, so pass null
+					const originalCached = cached;
+					cached = null;
 
-					if (saveSuccess) {
-						try {
-							const res = await fetch('/api/server/submit', {
-								method: 'POST',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify({
-									submissionKey: templateId,
-									FormData: formData
-								})
-							});
+					console.log('Sync: Attempting to save with formData:', formData);
+					
+					try {
+						// First, create a submission record to get a proper submission key
+						console.log('Sync: Creating submission record for template:', templateId);
+						const createSubmissionRes = await fetch('/api/server/submission', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ FormTemplateId: templateId })
+						});
+						
+						if (!createSubmissionRes.ok) {
+							throw new Error(`Failed to create submission: ${createSubmissionRes.status} ${createSubmissionRes.statusText}`);
+						}
+						
+						const createSubmissionData = await createSubmissionRes.json();
+						console.log('Sync: Created submission record:', createSubmissionData);
+						
+						if (createSubmissionData?.Data?.Link) {
+							// Extract the submission key from the link
+							const submissionLink = createSubmissionData.Data.Link;
+							const linkParts = submissionLink.split('/');
+							const newSubmissionKey = linkParts[linkParts.length - 1];
+							console.log('Sync: Using new submission key:', newSubmissionKey.substring(0, 8) + '...');
+							
+							// Update the submission key for this session
+							submissionKey = newSubmissionKey;
+						} else {
+							console.error('Sync: Failed to create submission record:', createSubmissionData);
+							throw new Error('Failed to create submission record: ' + (createSubmissionData?.Message || 'Unknown error'));
+						}
 
-							const submissionData = await res.json();
-							toastMessage(submissionData);
+						const saveSuccess = await handleSave({ preventDefault: () => {} }, false);
+						
+						// Restore original cached value
+						cached = originalCached;
 
-							if (!submissionData?.message) {
-								addToast({
-									message: 'Submission successful after reconnecting.',
-									type: 'success',
-									timeout: 3000
+						if (saveSuccess) {
+							try {
+								const res = await fetch('/api/server/submit', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify({
+										submissionKey: submissionKey,
+										FormData: formData
+									})
 								});
-								await db.delete(STORAGE_KEY);
-								console.log('IndexedDB cleared after sync.');
-							}
-						} catch (err) {
-							console.error('Network lost during sync:', err);
-							await db.add({
-								id: STORAGE_KEY,
-								payload: {
-									intentToSubmit: true,
-									Token: templateId,
-									FormData: formData
+
+								const submissionData = await res.json();
+								toastMessage(submissionData);
+
+								if (!submissionData?.message) {
+									addToast({
+										message: 'Submission successful after reconnecting.',
+										type: 'success',
+										timeout: 3000
+									});
+									await db.delete(STORAGE_KEY);
+									console.log('IndexedDB cleared after sync.');
 								}
-							});
+							} catch (err) {
+								console.error('Network lost during sync:', err);
+								await db.add({
+									id: STORAGE_KEY,
+									payload: {
+										intentToSubmit: true,
+										Token: templateId,
+										FormData: formData
+									}
+								});
+								addToast({
+									message: 'Network lost again during sync. Unsynced data retained.',
+									type: 'error',
+									timeout: 4000
+								});
+							}
+						} else {
+							console.error('Sync: Save failed during offline restoration');
 							addToast({
-								message: 'Network lost again during sync. Unsynced data retained.',
+								message: 'Failed to save form data during sync. Please try again.',
 								type: 'error',
 								timeout: 4000
 							});
 						}
+					} catch (error) {
+						console.error('Sync: Error during handleSave:', error);
+						// Restore original cached value
+						cached = originalCached;
+						addToast({
+							message: 'Error occurred during sync. Please try again.',
+							type: 'error',
+							timeout: 4000
+						});
 					}
 				} else {
 					console.log('Back online: no submission intent found.');
@@ -388,7 +502,7 @@
 			</div>
 
 			<div class="min-h-[390px] rounded-md border border-gray-500 bg-[#f9fafb] dark:bg-[#0a0a0b]">
-				<QuestionPaper {answers} {errors} {isSubmitted} sections={templateInfo} />
+				<QuestionPaper bind:answers bind:errors {isSubmitted} sections={templateInfo} />
 			</div>
 
 			<div class="mx-auto flex flex-col space-x-5 pb-32 pt-6 md:flex-row">

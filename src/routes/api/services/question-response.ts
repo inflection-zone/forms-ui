@@ -26,6 +26,7 @@ export const createQuestionResponse = async (
     };
 
     console.log('ResponseBody========', body)
+    console.log('Question responses being sent to backend:', JSON.stringify(questionResponses, null, 2));
 
     const url = BACKEND_API_URL + `/question-responses/save`;
     return await post_(url, body);
