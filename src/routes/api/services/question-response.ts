@@ -3,6 +3,7 @@ import { get_, post_ } from "./common";
 
 export type QuestionResponseCreateModel = {
     FormSubmissionId: string;
+    FormTemplateId: string;
     ResponseType: string;
     QuestionId: string;
     IntegerValue: number | null;
@@ -16,18 +17,18 @@ export type QuestionResponseCreateModel = {
 };
 
 export const createQuestionResponse = async (
-	formSubmissionKey: string,
-	questionResponses: QuestionResponseCreateModel[]
+    formSubmissionKey: string,
+    questionResponses: QuestionResponseCreateModel[]
 ) => {
-	const body = {
-		FormSubmissionKey: formSubmissionKey,
-		QuestionResponses: questionResponses
-	};
+    const body = {
+        FormSubmissionKey: formSubmissionKey,
+        QuestionResponses: questionResponses
+    };
 
     console.log('ResponseBody========', body)
 
-	const url = BACKEND_API_URL + `/question-responses/save`;
-	return await post_(url, body);
+    const url = BACKEND_API_URL + `/question-responses/save`;
+    return await post_(url, body);
 };
 
 export const searchQuestionResponse = async (

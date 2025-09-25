@@ -206,6 +206,7 @@
 				sections,
 				answers,
 				formSubmissionId,
+				templateInfo.id,
 				questionResponseData
 			);
 
