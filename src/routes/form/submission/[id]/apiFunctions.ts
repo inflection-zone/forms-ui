@@ -60,6 +60,7 @@ export async function submit(FormSubmissionId: string) {
 
 export type QuestionResponseCreateModel = {
     FormSubmissionId: string;
+    FormTemplateId: string;
     ResponseType: string;
     QuestionId: string;
     IntegerValue: number | null;
@@ -231,6 +232,7 @@ export async function questionResponseModels(
     sections,
     answers,
     FormSubmissionId,
+    FormTemplateId,
     questionResponseData
 ): Promise<QuestionResponseCreateModel[]> {
 
@@ -262,6 +264,7 @@ export async function questionResponseModels(
         return {
             id: questionResponseId,
             FormSubmissionId,
+            FormTemplateId,
             ResponseType,
             FormFieldId: key,
             IntegerValue: ["Integer", "Rating", "Range"].includes(ResponseType)

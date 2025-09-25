@@ -146,12 +146,12 @@
 	let touched = new Set<string>();
 	let prevAnswers: Record<string, any> = {};
 
-	function runAllLogics() {
+	async function runAllLogics() {
 		if (!executor) return;
 		
 		// Execute all field logics (skip, calculation, validation)
-		const results = executor.executeAllFieldLogics();
-		const visibleFields = executor.getVisibleFields();
+		const results = await executor.executeAllFieldLogics();
+		const visibleFields = await executor.getVisibleFields();
 		visibleSet = new Set(visibleFields.map((f) => f.FieldId));
 
 		// Apply calculated values to answers
@@ -162,7 +162,7 @@
 		}
 
 		// Validation: only show for touched fields with non-empty values
-		const { errors: formErrors } = executor.validateForm();
+		const { errors: formErrors } = await executor.validateForm();
 		
 		const nextErrors: Record<string, string> = {};
 		for (const [fid, msgs] of formErrors.entries()) {
