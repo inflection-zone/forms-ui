@@ -261,6 +261,43 @@
 	function toggleMenu(id) {
 		activeMenu = activeMenu === id ? null : id;
 	}
+
+	async function handleExportTemplate(templateId: string, templateTitle: string) {
+		try {
+			const response = await fetch('/api/server/export/templates', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					templateIds: [templateId],
+					format: 'json',
+					includeResponses: false,
+					includeMetadata: true,
+					fileName: `${templateTitle.replace(/[^a-zA-Z0-9]/g, '_')}_export`
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('Export failed');
+			}
+
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `${templateTitle.replace(/[^a-zA-Z0-9]/g, '_')}_export.json`;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(url);
+
+			successMessage(`Successfully exported "${templateTitle}" as JSON`);
+		} catch (error) {
+			console.error('Export error:', error);
+			errorMessage('Failed to export template. Please try again.');
+		}
+	}
 </script>
 
 <div class="my-4 flex items-center justify-between">
@@ -400,6 +437,16 @@
 												</AlertDialog.Footer>
 											</AlertDialog.Content>
 										</AlertDialog.Root>
+
+										<Button
+											variant="ghost"
+											class="w-36 justify-start"
+											onclick={() => handleExportTemplate(row.id, row.Title)}
+										>
+											<Icon icon="material-symbols:download" width="20" height="20" />
+											<span>Export</span>
+										</Button>
+
 
 										<AlertDialog.Root bind:open>
 											<AlertDialog.Trigger class="{buttonVariants({ variant: 'ghost' })} w-36 justify-start">

@@ -133,3 +133,40 @@ export const deleteFormTemplate = async (formTemplateId: string) => {
 	const url = BACKEND_API_URL + `/form-templates/${formTemplateId}`;
 	return await delete_(url);
 };
+
+// Export functions
+export const exportFormTemplates = async (
+	templateIds: string[],
+	format: 'json' | 'pdf' | 'csv' | 'zip',
+	includeResponses: boolean = false,
+	includeMetadata: boolean = true,
+	fileName?: string
+) => {
+	const body = {
+		templateIds,
+		format,
+		includeResponses,
+		includeMetadata,
+		fileName
+	};
+
+	const response = await fetch('/api/server/export/templates', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify(body)
+	});
+
+	if (!response.ok) {
+		throw new Error('Export failed');
+	}
+
+	return response;
+};
+
+export const getExportHistory = async (userId: string) => {
+	// This would typically fetch from a database or storage
+	// For now, return empty array as placeholder
+	return [];
+};
