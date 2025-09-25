@@ -26,9 +26,13 @@ export const createQuestionResponse = async (
     };
 
     console.log('ResponseBody========', body)
+    console.log('FormSubmissionKey being sent to backend:', formSubmissionKey);
+    console.log('QuestionResponses being sent to backend:', questionResponses);
 
     const url = BACKEND_API_URL + `/question-responses/save`;
-    return await post_(url, body);
+    const result = await post_(url, body);
+    console.log('Backend response:', result);
+    return result;
 };
 
 export const searchQuestionResponse = async (
