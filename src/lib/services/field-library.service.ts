@@ -161,6 +161,44 @@ export class FieldLibraryService {
     }
 
     /**
+     * Get Basic fields (text-based category)
+     */
+    async getBasicFields(): Promise<FieldLibraryItem[]> {
+        const cacheKey = 'basic-fields';
+        const cached = this.getCachedData(cacheKey);
+        if (cached) return cached;
+
+        try {
+            const fields = await this.getFieldsByCategory('text-based');
+            this.setCachedData(cacheKey, fields);
+            return fields;
+        } catch (error) {
+            console.error('Error fetching basic fields:', error);
+            // Return fallback basic fields
+            return this.getFallbackBasicFields();
+        }
+    }
+
+    /**
+     * Get Health Care fields
+     */
+    async getHealthCareFields(): Promise<FieldLibraryItem[]> {
+        const cacheKey = 'healthcare-fields';
+        const cached = this.getCachedData(cacheKey);
+        if (cached) return cached;
+
+        try {
+            const fields = await this.getFieldsByCategory('healthcare');
+            this.setCachedData(cacheKey, fields);
+            return fields;
+        } catch (error) {
+            console.error('Error fetching healthcare fields:', error);
+            // Return fallback healthcare fields
+            return this.getFallbackHealthCareFields();
+        }
+    }
+
+    /**
      * Get all field templates
      */
     async getTemplates(): Promise<FieldLibraryTemplate[]> {
@@ -357,6 +395,217 @@ export class FieldLibraryService {
             'interactive-advanced': 'material-symbols:settings-outline'
         };
         return icons[category] || 'material-symbols:category-outline';
+    }
+
+    /**
+     * Get fallback Basic fields
+     */
+    private getFallbackBasicFields(): FieldLibraryItem[] {
+        return [
+            {
+                id: '1',
+                fieldId: 'text',
+                name: 'Text',
+                category: 'text-based',
+                type: 'text',
+                responseType: 'Text',
+                description: 'Single line text input',
+                icon: 'material-symbols:text-fields',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '2',
+                fieldId: 'float',
+                name: 'Float',
+                category: 'text-based',
+                type: 'number',
+                responseType: 'Float',
+                description: 'Decimal number input',
+                icon: 'material-symbols:decimal',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '3',
+                fieldId: 'integer',
+                name: 'Integer',
+                category: 'text-based',
+                type: 'number',
+                responseType: 'Integer',
+                description: 'Whole number input',
+                icon: 'material-symbols:123',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '4',
+                fieldId: 'boolean',
+                name: 'Boolean',
+                category: 'text-based',
+                type: 'boolean',
+                responseType: 'Boolean',
+                description: 'Yes/No or True/False input',
+                icon: 'material-symbols:toggle-on',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '5',
+                fieldId: 'multichoice',
+                name: 'Multi-Choice Selection',
+                category: 'text-based',
+                type: 'multiselect',
+                responseType: 'MultiChoiceSelection',
+                description: 'Multiple choice selection',
+                icon: 'material-symbols:checklist',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '6',
+                fieldId: 'singlechoice',
+                name: 'Single-Choice Selection',
+                category: 'text-based',
+                type: 'select',
+                responseType: 'SingleChoiceSelection',
+                description: 'Single choice selection',
+                icon: 'material-symbols:radio-button-checked',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '7',
+                fieldId: 'date',
+                name: 'Date',
+                category: 'text-based',
+                type: 'date',
+                responseType: 'Date',
+                description: 'Date picker input',
+                icon: 'material-symbols:calendar-today',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '8',
+                fieldId: 'datetime',
+                name: 'Date-Time',
+                category: 'text-based',
+                type: 'datetime',
+                responseType: 'DateTime',
+                description: 'Date and time picker input',
+                icon: 'material-symbols:event',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '9',
+                fieldId: 'rating',
+                name: 'Rating',
+                category: 'text-based',
+                type: 'rating',
+                responseType: 'Rating',
+                description: 'Star rating input',
+                icon: 'material-symbols:star',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '10',
+                fieldId: 'range',
+                name: 'Range',
+                category: 'text-based',
+                type: 'range',
+                responseType: 'Range',
+                description: 'Range slider input',
+                icon: 'material-symbols:tune',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            }
+        ];
+    }
+
+    /**
+     * Get fallback Health Care fields
+     */
+    private getFallbackHealthCareFields(): FieldLibraryItem[] {
+        return [
+            {
+                id: '1',
+                fieldId: 'height',
+                name: 'Height',
+                category: 'healthcare',
+                type: 'measurement',
+                responseType: 'Height',
+                description: 'Height measurement with units',
+                icon: 'material-symbols:height',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '2',
+                fieldId: 'weight',
+                name: 'Weight',
+                category: 'healthcare',
+                type: 'measurement',
+                responseType: 'Weight',
+                description: 'Weight measurement with units',
+                icon: 'material-symbols:monitor-weight',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '3',
+                fieldId: 'temperature',
+                name: 'Temperature',
+                category: 'healthcare',
+                type: 'measurement',
+                responseType: 'Temperature',
+                description: 'Body temperature measurement',
+                icon: 'material-symbols:thermostat',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '4',
+                fieldId: 'pulse',
+                name: 'Pulse Rate',
+                category: 'healthcare',
+                type: 'measurement',
+                responseType: 'PulseRate',
+                description: 'Heart pulse rate measurement',
+                icon: 'material-symbols:favorite',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            },
+            {
+                id: '5',
+                fieldId: 'blood-pressure',
+                name: 'Blood Pressure',
+                category: 'healthcare',
+                type: 'measurement',
+                responseType: 'BloodPressure',
+                description: 'Blood pressure measurement',
+                icon: 'material-symbols:monitor-heart',
+                isRequired: false,
+                isActive: true,
+                version: '1.0.0'
+            }
+        ];
     }
 
     /**

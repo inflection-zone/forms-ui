@@ -6,7 +6,7 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
-	import { basicCards, healthCarePlugins } from '$lib/components/common/questionTypes';
+	// Removed static imports - now using dynamic fields from backend
 	import { addToast } from '$lib/components/toast/toast.store';
 	import { fieldLibraryService, type FieldLibraryCategory, type FieldLibraryItem } from '$lib/services/field-library.service';
 
@@ -27,6 +27,10 @@
 	let showImportDialog: boolean = $state(false);
 	let showExportDialog: boolean = $state(false);
 	let selectedTemplate: string = $state('');
+
+	// Dynamic Basic and Health Care fields
+	let basicFields: FieldLibraryItem[] = $state([]);
+	let healthCareFields: FieldLibraryItem[] = $state([]);
 
 	// Section templates
 	let SectionTemplate = {
@@ -70,7 +74,105 @@
 	}
 
 	// Function to get field type icons
-	function getFieldIcon(fieldType: string, responseType: string): string {
+	function getFieldIcon(fieldType: string, responseType: string, iconName?: string): string {
+		console.log('Getting icon for:', { fieldType, responseType, iconName });
+		
+		// If we have a simple icon name from backend, map it to full iconify name
+		if (iconName && !iconName.includes(':')) {
+			const simpleIconMap: Record<string, string> = {
+				'height': 'material-symbols:height',
+				'weight': 'material-symbols:monitor-weight',
+				'thermometer': 'material-symbols:thermostat',
+				'ruler': 'material-symbols:straighten',
+				'square': 'material-symbols:square-foot',
+				'cube': 'material-symbols:invert-colors',
+				'text': 'material-symbols:text-fields',
+				'email': 'material-symbols:email',
+				'phone': 'material-symbols:phone',
+				'url': 'material-symbols:link',
+				'textarea': 'material-symbols:notes',
+				'number': 'material-symbols:numbers',
+				'integer': 'material-symbols:123',
+				'float': 'material-symbols:decimal',
+				'currency': 'material-symbols:attach-money',
+				'percentage': 'material-symbols:percent',
+				'date': 'material-symbols:calendar-today',
+				'time': 'material-symbols:schedule',
+				'datetime': 'material-symbols:event',
+				'boolean': 'material-symbols:toggle-on',
+				'checkbox': 'material-symbols:check-box',
+				'radio': 'material-symbols:radio-button-checked',
+				'select': 'material-symbols:arrow-drop-down',
+				'multiselect': 'material-symbols:checklist',
+				'rating': 'material-symbols:star',
+				'range': 'material-symbols:tune',
+				'file': 'material-symbols:attach-file',
+				'image': 'material-symbols:image',
+				'address': 'material-symbols:location-on',
+				'name': 'material-symbols:person',
+				'age': 'material-symbols:elderly',
+				'gender': 'material-symbols:transgender',
+				'pulse': 'material-symbols:favorite',
+				'blood-pressure': 'material-symbols:monitor-heart',
+				'country': 'material-symbols:public',
+				'state': 'material-symbols:location-city',
+				'city': 'material-symbols:location-city',
+				'zipcode': 'material-symbols:markunread-mailbox',
+				'credit-card': 'material-symbols:credit-card',
+				'bank-account': 'material-symbols:account-balance',
+				'price': 'material-symbols:attach-money',
+				'quantity': 'material-symbols:inventory',
+				'product': 'material-symbols:inventory-2',
+				'category': 'material-symbols:category',
+				'tag': 'material-symbols:tag',
+				'color': 'material-symbols:palette',
+				'size': 'material-symbols:straighten',
+				'dimension': 'material-symbols:straighten',
+				'volume': 'material-symbols:invert-colors',
+				'area': 'material-symbols:square-foot',
+				'speed': 'material-symbols:speed',
+				'temperature': 'material-symbols:thermostat',
+				'pressure': 'material-symbols:compress',
+				'energy': 'material-symbols:bolt',
+				'power': 'material-symbols:power',
+				'frequency': 'material-symbols:graphic-eq',
+				'angle': 'material-symbols:rotate-right',
+				'length': 'material-symbols:straighten',
+				'distance': 'material-symbols:straighten',
+				'duration': 'material-symbols:timer',
+				'interval': 'material-symbols:schedule',
+				'rate': 'material-symbols:trending-up',
+				'ratio': 'material-symbols:aspect-ratio',
+				'proportion': 'material-symbols:aspect-ratio',
+				'concentration': 'material-symbols:science',
+				'density': 'material-symbols:science',
+				'viscosity': 'material-symbols:water-drop',
+				'conductivity': 'material-symbols:bolt',
+				'resistance': 'material-symbols:electrical-services',
+				'capacitance': 'material-symbols:electrical-services',
+				'inductance': 'material-symbols:electrical-services',
+				'voltage': 'material-symbols:electrical-services',
+				'current': 'material-symbols:electrical-services',
+				'wavelength': 'material-symbols:waves',
+				'amplitude': 'material-symbols:graphic-eq',
+				'phase': 'material-symbols:rotate-right',
+				'period': 'material-symbols:schedule',
+				'link': 'material-symbols:link',
+				'password': 'material-symbols:lock',
+				'search': 'material-symbols:search',
+				'rich-text': 'material-symbols:format-bold',
+				'slider': 'material-symbols:tune',
+				'heatmap': 'material-symbols:heat-pump'
+			};
+			return simpleIconMap[iconName] || 'material-symbols:category-outline';
+		}
+
+		// If iconName is already a full iconify name, return it
+		if (iconName && iconName.includes(':')) {
+			return iconName;
+		}
+
+		// Fallback to fieldType/responseType mapping
 		const iconMap: Record<string, string> = {
 			'text': 'material-symbols:text-fields',
 			'email': 'material-symbols:email',
@@ -116,12 +218,10 @@
 			'tag': 'material-symbols:tag',
 			'color': 'material-symbols:palette',
 			'size': 'material-symbols:straighten',
-			'weight': 'material-symbols:monitor-weight',
 			'dimension': 'material-symbols:straighten',
 			'volume': 'material-symbols:invert-colors',
 			'area': 'material-symbols:square-foot',
 			'speed': 'material-symbols:speed',
-			'temperature': 'material-symbols:thermostat',
 			'pressure': 'material-symbols:compress',
 			'energy': 'material-symbols:bolt',
 			'power': 'material-symbols:power',
@@ -129,10 +229,8 @@
 			'angle': 'material-symbols:rotate-right',
 			'length': 'material-symbols:straighten',
 			'distance': 'material-symbols:straighten',
-			'time': 'material-symbols:schedule',
 			'duration': 'material-symbols:timer',
 			'interval': 'material-symbols:schedule',
-			'frequency': 'material-symbols:graphic-eq',
 			'rate': 'material-symbols:trending-up',
 			'ratio': 'material-symbols:aspect-ratio',
 			'proportion': 'material-symbols:aspect-ratio',
@@ -145,15 +243,7 @@
 			'inductance': 'material-symbols:electrical-services',
 			'voltage': 'material-symbols:electrical-services',
 			'current': 'material-symbols:electrical-services',
-			'power': 'material-symbols:power',
-			'energy': 'material-symbols:bolt',
-			'frequency': 'material-symbols:graphic-eq',
 			'wavelength': 'material-symbols:waves',
-			'amplitude': 'material-symbols:graphic-eq',
-			'phase': 'material-symbols:rotate-right',
-			'period': 'material-symbols:schedule',
-			'wavelength': 'material-symbols:waves',
-			'frequency': 'material-symbols:graphic-eq',
 			'amplitude': 'material-symbols:graphic-eq',
 			'phase': 'material-symbols:rotate-right',
 			'period': 'material-symbols:schedule'
@@ -164,7 +254,11 @@
 	}
 
 	onMount(async () => {
-		await loadFieldLibraryCategories();
+		await Promise.all([
+			loadFieldLibraryCategories(),
+			loadBasicFields(),
+			loadHealthCareFields()
+		]);
 	});
 
 	// Watch for selectedCategory changes and load fields
@@ -185,6 +279,7 @@
 		try {
 			isLoading = true;
 			const categories = await fieldLibraryService.getCategories();
+			console.log('Loaded categories:', categories);
 			fieldLibraryCategories = categories;
 			if (categories.length > 0 && !selectedCategory) {
 				selectedCategory = categories[0].name;
@@ -199,6 +294,36 @@
 			});
 		} finally {
 			isLoading = false;
+		}
+	}
+
+	async function loadBasicFields() {
+		try {
+			const fields = await fieldLibraryService.getBasicFields();
+			console.log('Loaded basic fields:', fields);
+			basicFields = fields;
+		} catch (error) {
+			console.error('Failed to load basic fields:', error);
+			addToast({
+				message: 'Failed to load basic fields',
+				type: 'error',
+				timeout: 3000
+			});
+		}
+	}
+
+	async function loadHealthCareFields() {
+		try {
+			const fields = await fieldLibraryService.getHealthCareFields();
+			console.log('Loaded healthcare fields:', fields);
+			healthCareFields = fields;
+		} catch (error) {
+			console.error('Failed to load healthcare fields:', error);
+			addToast({
+				message: 'Failed to load healthcare fields',
+				type: 'error',
+				timeout: 3000
+			});
 		}
 	}
 
@@ -299,9 +424,59 @@
 
 	const currentFields = $derived(() => {
 		if (typeOfQuestion === 'Basic') {
-			return basicCards;
+			return basicFields.map(field => ({
+				id: field.id,
+				name: field.name,
+				value: field.responseType,
+				icon: field.icon || getFieldIcon(field.type, field.responseType, field.icon),
+				category: field.category,
+				description: field.description,
+				type: 'card',
+				fieldId: field.fieldId,
+				fieldType: field.type,
+				validationOptions: field.validationOptions,
+				configurationOptions: field.configurationOptions,
+				defaultValue: field.defaultValue,
+				isRequired: field.isRequired,
+				dependencies: field.dependencies,
+				useCases: field.useCases,
+				accessibility: field.accessibility,
+				htmlType: field.htmlType,
+				component: field.component,
+				schema: field.schema,
+				logic: field.logic,
+				sequence: field.sequence,
+				isActive: field.isActive,
+				tags: field.tags,
+				version: field.version
+			}));
 		} else if (typeOfQuestion === 'HealthCare') {
-			return healthCarePlugins;
+			return healthCareFields.map(field => ({
+				id: field.id,
+				name: field.name,
+				value: field.responseType,
+				icon: field.icon || getFieldIcon(field.type, field.responseType, field.icon),
+				category: field.category,
+				description: field.description,
+				type: 'card',
+				fieldId: field.fieldId,
+				fieldType: field.type,
+				validationOptions: field.validationOptions,
+				configurationOptions: field.configurationOptions,
+				defaultValue: field.defaultValue,
+				isRequired: field.isRequired,
+				dependencies: field.dependencies,
+				useCases: field.useCases,
+				accessibility: field.accessibility,
+				htmlType: field.htmlType,
+				component: field.component,
+				schema: field.schema,
+				logic: field.logic,
+				sequence: field.sequence,
+				isActive: field.isActive,
+				tags: field.tags,
+				version: field.version
+			}));
 		} else if (typeOfQuestion === 'FieldLibrary') {
 			if (searchQuery.trim() && searchResults.length > 0) {
 				console.log('Using search results:', searchResults);
@@ -489,7 +664,7 @@
 										aria-label={`Draggable card: ${field.name}`}
 									>
 										<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
-											<Icon icon={field.icon || getFieldIcon(field.type, field.responseType)} width="20" height="20" class="text-primary" />
+											<Icon icon={field.icon || getFieldIcon(field.type, field.responseType, field.icon)} width="20" height="20" class="text-primary" />
 											<div class="flex flex-col items-start">
 												<span class="text-sm text-gray-700 dark:text-gray-200">{field.name}</span>
 												<span class="text-xs text-gray-500 dark:text-gray-400">{field.category}</span>
@@ -518,7 +693,7 @@
 					<div class="flex items-center gap-3">
 						<Icon icon="material-symbols:edit-outline" class="h-5 w-5 text-primary" />
 						<span class="font-medium text-gray-700 dark:text-gray-200">Basic Fields</span>
-						<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">5 types</span>
+						<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">{basicFields.length} types</span>
 					</div>
 					<Icon 
 						icon="material-symbols:keyboard-arrow-down" 
@@ -528,19 +703,63 @@
 				{#if basicExpanded}
 					<div class="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800">
 						<div class="space-y-1">
-							{#each basicCards as card}
-								<div
-									class="w-full cursor-grab rounded-md hover:bg-white dark:hover:bg-gray-700 transition-colors"
-									use:draggable={{ ...card, type: 'card' }}
-									role="button"
-									aria-label={`Draggable card: ${card.name}`}
-								>
-									<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
-										<Icon icon={card.icon} width="20" height="20" class="text-primary" />
-										<span class="text-sm text-gray-700 dark:text-gray-200">{card.name}</span>
-									</Button>
+							{#if isLoading}
+								<div class="flex items-center justify-center py-8">
+									<Icon icon="svg-spinners:ring-resize" class="h-6 w-6 text-primary" />
+									<span class="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading...</span>
 								</div>
-							{/each}
+							{:else if basicFields.length === 0}
+								<div class="flex flex-col items-center justify-center py-8 text-center">
+									<Icon icon="material-symbols:search-off" class="h-8 w-8 text-gray-400 dark:text-gray-500 mb-2" />
+									<p class="text-sm text-gray-500 dark:text-gray-400">No basic fields available</p>
+								</div>
+							{:else}
+								{#each basicFields as field}
+									<div
+										class="w-full cursor-grab rounded-md hover:bg-white dark:hover:bg-gray-700 transition-colors"
+										use:draggable={{ 
+											id: field.id,
+											name: field.name,
+											value: field.responseType,
+											icon: field.icon || getFieldIcon(field.type, field.responseType, field.icon),
+											category: field.category,
+											description: field.description,
+											type: 'card',
+											fieldId: field.fieldId,
+											fieldType: field.type,
+											validationOptions: field.validationOptions,
+											configurationOptions: field.configurationOptions,
+											defaultValue: field.defaultValue,
+											isRequired: field.isRequired,
+											dependencies: field.dependencies,
+											useCases: field.useCases,
+											accessibility: field.accessibility,
+											htmlType: field.htmlType,
+											component: field.component,
+											schema: field.schema,
+											logic: field.logic,
+											sequence: field.sequence,
+											isActive: field.isActive,
+											tags: field.tags,
+											version: field.version
+										}}
+										role="button"
+										aria-label={`Draggable card: ${field.name}`}
+									>
+										<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
+											<Icon icon={field.icon || getFieldIcon(field.type, field.responseType, field.icon)} width="20" height="20" class="text-primary" />
+											<div class="flex flex-col items-start">
+												<span class="text-sm text-gray-700 dark:text-gray-200">{field.name}</span>
+												{#if field.description}
+													<span class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-32">
+														{field.description}
+													</span>
+												{/if}
+											</div>
+										</Button>
+									</div>
+								{/each}
+							{/if}
 						</div>
 					</div>
 				{/if}
@@ -555,7 +774,7 @@
 					<div class="flex items-center gap-3">
 						<Icon icon="healthicons:medical-kit" class="h-5 w-5 text-primary" />
 						<span class="font-medium text-gray-700 dark:text-gray-200">Health Care Fields</span>
-						<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">4 types</span>
+						<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">{healthCareFields.length} types</span>
 					</div>
 					<Icon 
 						icon="material-symbols:keyboard-arrow-down" 
@@ -565,19 +784,63 @@
 				{#if healthCareExpanded}
 					<div class="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800">
 						<div class="space-y-1">
-							{#each healthCarePlugins as card}
-								<div
-									class="w-full cursor-grab rounded-md hover:bg-white dark:hover:bg-gray-700 transition-colors"
-									use:draggable={{ ...card, type: 'card' }}
-									role="button"
-									aria-label={`Draggable card: ${card.name}`}
-								>
-									<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
-										<Icon icon={card.icon} width="20" height="20" class="text-primary" />
-										<span class="text-sm text-gray-700 dark:text-gray-200">{card.name}</span>
-									</Button>
+							{#if isLoading}
+								<div class="flex items-center justify-center py-8">
+									<Icon icon="svg-spinners:ring-resize" class="h-6 w-6 text-primary" />
+									<span class="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading...</span>
 								</div>
-							{/each}
+							{:else if healthCareFields.length === 0}
+								<div class="flex flex-col items-center justify-center py-8 text-center">
+									<Icon icon="material-symbols:search-off" class="h-8 w-8 text-gray-400 dark:text-gray-500 mb-2" />
+									<p class="text-sm text-gray-500 dark:text-gray-400">No healthcare fields available</p>
+								</div>
+							{:else}
+								{#each healthCareFields as field}
+									<div
+										class="w-full cursor-grab rounded-md hover:bg-white dark:hover:bg-gray-700 transition-colors"
+										use:draggable={{ 
+											id: field.id,
+											name: field.name,
+											value: field.responseType,
+											icon: field.icon || getFieldIcon(field.type, field.responseType, field.icon),
+											category: field.category,
+											description: field.description,
+											type: 'card',
+											fieldId: field.fieldId,
+											fieldType: field.type,
+											validationOptions: field.validationOptions,
+											configurationOptions: field.configurationOptions,
+											defaultValue: field.defaultValue,
+											isRequired: field.isRequired,
+											dependencies: field.dependencies,
+											useCases: field.useCases,
+											accessibility: field.accessibility,
+											htmlType: field.htmlType,
+											component: field.component,
+											schema: field.schema,
+											logic: field.logic,
+											sequence: field.sequence,
+											isActive: field.isActive,
+											tags: field.tags,
+											version: field.version
+										}}
+										role="button"
+										aria-label={`Draggable card: ${field.name}`}
+									>
+										<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
+											<Icon icon={field.icon || getFieldIcon(field.type, field.responseType, field.icon)} width="20" height="20" class="text-primary" />
+											<div class="flex flex-col items-start">
+												<span class="text-sm text-gray-700 dark:text-gray-200">{field.name}</span>
+												{#if field.description}
+													<span class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-32">
+														{field.description}
+													</span>
+												{/if}
+											</div>
+										</Button>
+									</div>
+								{/each}
+							{/if}
 						</div>
 					</div>
 				{/if}
@@ -652,7 +915,7 @@
 											ondragstart={() => console.log('Drag start on field library card:', field.name)}
 										>
 											<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
-												<Icon icon={field.icon || getFieldIcon(field.type, field.responseType)} width="20" height="20" class="text-primary" />
+												<Icon icon={field.icon || getFieldIcon(field.type, field.responseType, field.icon)} width="20" height="20" class="text-primary" />
 												<div class="flex flex-col items-start">
 													<span class="text-sm text-gray-700 dark:text-gray-200">{field.name}</span>
 													{#if field.description}
