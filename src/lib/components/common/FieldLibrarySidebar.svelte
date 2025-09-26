@@ -148,7 +148,25 @@
 					icon: field.icon || 'material-symbols:category-outline',
 					category: field.category,
 					description: field.description,
-					type: 'card'
+					type: 'card',
+					// Include all Field Library configuration data
+					fieldId: field.fieldId,
+					fieldType: field.type,
+					validationOptions: field.validationOptions,
+					configurationOptions: field.configurationOptions,
+					defaultValue: field.defaultValue,
+					isRequired: field.isRequired,
+					dependencies: field.dependencies,
+					useCases: field.useCases,
+					accessibility: field.accessibility,
+					htmlType: field.htmlType,
+					component: field.component,
+					schema: field.schema,
+					logic: field.logic,
+					sequence: field.sequence,
+					isActive: field.isActive,
+					tags: field.tags,
+					version: field.version
 				}));
 			}
 			const category = fieldLibraryCategories.find(c => c.name === selectedCategory);
@@ -162,7 +180,25 @@
 				icon: field.icon || 'material-symbols:category-outline',
 				category: field.category,
 				description: field.description,
-				type: 'card'
+				type: 'card',
+				// Include all Field Library configuration data
+				fieldId: field.fieldId,
+				fieldType: field.type,
+				validationOptions: field.validationOptions,
+				configurationOptions: field.configurationOptions,
+				defaultValue: field.defaultValue,
+				isRequired: field.isRequired,
+				dependencies: field.dependencies,
+				useCases: field.useCases,
+				accessibility: field.accessibility,
+				htmlType: field.htmlType,
+				component: field.component,
+				schema: field.schema,
+				logic: field.logic,
+				sequence: field.sequence,
+				isActive: field.isActive,
+				tags: field.tags,
+				version: field.version
 			})) : [];
 		}
 		return [];

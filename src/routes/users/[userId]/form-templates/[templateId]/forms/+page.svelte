@@ -84,11 +84,48 @@
 
 		if (sectionId !== null && subsectionId === null) {
 			if (dropData.type === 'card') {
-				const model = {
-					parentFormTemplateId,
-					parentSectionId: sectionId,
-					responseType: dropData.value
-				};
+				// Check if this is a Field Library field with rich configuration
+				const isFieldLibraryField = dropData.fieldId && dropData.fieldType;
+				
+				let model;
+				if (isFieldLibraryField) {
+					// Use Field Library configuration
+					model = {
+						parentFormTemplateId,
+						parentSectionId: sectionId,
+						responseType: dropData.value,
+						// Include Field Library specific configuration
+						title: dropData.name,
+						description: dropData.description,
+						isRequired: dropData.isRequired || false,
+						hint: dropData.description,
+						// Map configuration options to form field properties
+						...(dropData.configurationOptions && {
+							options: dropData.configurationOptions.options || [],
+							rangeMin: dropData.configurationOptions.rangeMin,
+							rangeMax: dropData.configurationOptions.rangeMax,
+							defaultExpectedUnit: dropData.configurationOptions.defaultExpectedUnit
+						}),
+						// Map validation options
+						...(dropData.validationOptions && {
+							validationRules: dropData.validationOptions
+						}),
+						// Map default value
+						...(dropData.defaultValue && {
+							defaultValue: dropData.defaultValue
+						})
+					};
+					console.log('Creating Field Library field with configuration:', model);
+				} else {
+					// Use basic configuration for Basic/HealthCare fields
+					model = {
+						parentFormTemplateId,
+						parentSectionId: sectionId,
+						responseType: dropData.value
+					};
+					console.log('Creating basic field:', model);
+				}
+				
 				const response = await fetch(`/api/server/form-fields`, {
 					method: 'POST',
 					body: JSON.stringify(model),
@@ -116,11 +153,48 @@
 
 		if (sectionId !== null && subsectionId !== null) {
 			if (dropData.type === 'card') {
-				const model = {
-					parentFormTemplateId,
-					parentSectionId: subsectionId,
-					responseType: dropData.value
-				};
+				// Check if this is a Field Library field with rich configuration
+				const isFieldLibraryField = dropData.fieldId && dropData.fieldType;
+				
+				let model;
+				if (isFieldLibraryField) {
+					// Use Field Library configuration
+					model = {
+						parentFormTemplateId,
+						parentSectionId: subsectionId,
+						responseType: dropData.value,
+						// Include Field Library specific configuration
+						title: dropData.name,
+						description: dropData.description,
+						isRequired: dropData.isRequired || false,
+						hint: dropData.description,
+						// Map configuration options to form field properties
+						...(dropData.configurationOptions && {
+							options: dropData.configurationOptions.options || [],
+							rangeMin: dropData.configurationOptions.rangeMin,
+							rangeMax: dropData.configurationOptions.rangeMax,
+							defaultExpectedUnit: dropData.configurationOptions.defaultExpectedUnit
+						}),
+						// Map validation options
+						...(dropData.validationOptions && {
+							validationRules: dropData.validationOptions
+						}),
+						// Map default value
+						...(dropData.defaultValue && {
+							defaultValue: dropData.defaultValue
+						})
+					};
+					console.log('Creating Field Library field in subsection with configuration:', model);
+				} else {
+					// Use basic configuration for Basic/HealthCare fields
+					model = {
+						parentFormTemplateId,
+						parentSectionId: subsectionId,
+						responseType: dropData.value
+					};
+					console.log('Creating basic field in subsection:', model);
+				}
+				
 				const response = await fetch(`/api/server/form-fields`, {
 					method: 'POST',
 					body: JSON.stringify(model),
