@@ -43,7 +43,7 @@ export const actions = {
 		user.forEach((element: { Username: string; Password: string; id: unknown; }) => {
 
 			if (element.Username == username && element.Password === password) {
-				throw redirect(303, `/users/${element.id}/form-templates`);
+				throw redirect(303, `/users/${element.id}/home`);
 			}
 		});
 

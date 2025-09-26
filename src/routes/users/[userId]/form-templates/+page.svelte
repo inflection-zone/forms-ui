@@ -1,9 +1,6 @@
 <script lang="ts">
 	import type { ActionData, PageServerData } from './$types';
 	import Icon from '@iconify/svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import { page } from '$app/state';
 	import { TemplateTable, TemplateForm } from '$lib/components/template/index';
 	import { enhance } from '$app/forms';
@@ -20,6 +17,7 @@
 	let templateData = {};
 	let expandedItem: string | null = $state();
 	let selectedSubmenu: string | null = $state('createForm');
+	let showAddModal = $state(false);
 
 	// console.log("This is form data", form,"And this is errors", errors);
 	$inspect(errors);
@@ -58,6 +56,33 @@
 		selectedSubmenu = submenu;
 	}
 
+	function openAddModal() {
+		showAddModal = true;
+	}
+
+	function closeAddModal() {
+		showAddModal = false;
+	}
+
+	// Button class helper
+	function getButtonClasses(variant: 'default' | 'ghost' | 'outline' = 'default', size: 'sm' | 'md' | 'lg' = 'md') {
+		const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+		
+		const variants = {
+			default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+			ghost: 'hover:bg-accent hover:text-accent-foreground',
+			outline: 'border border-input hover:bg-accent hover:text-accent-foreground'
+		};
+
+		const sizes = {
+			sm: 'h-9 px-3 text-sm',
+			md: 'h-10 py-2 px-4',
+			lg: 'h-11 px-8'
+		};
+
+		return `${baseClasses} ${variants[variant]} ${sizes[size]}`;
+	}
+
 async function handleTemplateUpdate(model) {
 		console.log(model,"I am from handleSectionUpdate");
 		const response = await fetch(`/api/server/template`, {
@@ -90,22 +115,20 @@ async function handleTemplateUpdate(model) {
 			{#each menuItems as item}
 				<div>
 					<div class="group relative">
-						<Button
-							class="w-full justify-start space-x-2 px-5 py-3 text-sm duration-500 md:text-base "
+						<button
+							class="{getButtonClasses('outline')} w-full justify-start space-x-2 px-5 py-3 text-sm duration-500 md:text-base"
 							onclick={() => toggleExpand(item.name)}
-							variant="outline"
 						>
 							<Icon icon={item.icon} width="20" height="20" class="text-primary md:h-6 md:w-6" />
 							<p>{item.name}</p>
-						</Button>
+						</button>
 					</div>
 
 					{#if expandedItem === item.name}
 						<div class=" mt-2 flex flex-col space-y-2">
 							{#each item.subMenuItems as subItem}
-								<Button
-									class="flex justify-start text-sm md:text-base"
-									variant="ghost"
+								<button
+									class="{getButtonClasses('ghost')} flex justify-start text-sm md:text-base"
 									onclick={subItem.action}
 								>
 									<Icon
@@ -115,7 +138,7 @@ async function handleTemplateUpdate(model) {
 										class="text-primary md:h-5 md:w-5"
 									/>
 									<p class=" text-left">{subItem.name}</p>
-								</Button>
+								</button>
 							{/each}
 						</div>
 					{/if}
@@ -135,29 +158,13 @@ async function handleTemplateUpdate(model) {
 							Here's a Form Templates !
 						</p>
 					</div>
-					<!-- <AssessmentForm {data} /> -->
-					<Dialog.Root>
-						<Dialog.Trigger class="{buttonVariants({ variant: 'default' })} my-2 w-28 md:ml-auto">
-							Add New
-						</Dialog.Trigger>
-						<Dialog.Overlay class=" bg-black/50 backdrop-blur-sm" />
-						<Dialog.Content
-							class=" scrollbar-hide max-h-[90%] max-w-[95%] overflow-y-auto rounded-md md:max-w-[85%] lg:max-w-[45%] "
-						>
-							<Dialog.Header>
-								<Dialog.Title>Add New</Dialog.Title>
-								<Dialog.Description>
-									Make changes to your form template here. Click save when you're done.
-								</Dialog.Description>
-							</Dialog.Header>
-							<form method="POST" action="?/newAssessment" use:enhance>
-								<TemplateForm {templateData} bind:errors />
-								<Dialog.Footer>
-									<Button class="my-2" type="submit">Create</Button>
-								</Dialog.Footer>
-							</form>
-						</Dialog.Content>
-					</Dialog.Root>
+				<!-- <AssessmentForm {data} /> -->
+				<button 
+					class="{getButtonClasses('default')} my-2 w-28 md:ml-auto"
+					onclick={openAddModal}
+				>
+					Add New
+				</button>
 				</div>
 				<!-- <DataTable data={assessments.Items} {columns} /> -->
 				<TemplateTable {data} bind:errors {handleTemplateUpdate}/>
@@ -194,6 +201,36 @@ async function handleTemplateUpdate(model) {
 		{/if}
 	</div>
 </div>
+
+<!-- Add New Template Modal -->
+{#if showAddModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.target === e.currentTarget && closeAddModal()} onkeydown={(e) => e.key === 'Escape' && closeAddModal()}>
+		<div class="scrollbar-hide max-h-[90%] max-w-[95%] overflow-y-auto rounded-md bg-background p-6 shadow-lg md:max-w-[85%] lg:max-w-[45%]" role="document">
+			<div class="mb-4">
+				<h2 class="text-lg font-semibold">Add New</h2>
+				<p class="text-sm text-muted-foreground">Make changes to your form template here. Click save when you're done.</p>
+			</div>
+			<form method="POST" action="?/newAssessment" use:enhance>
+				<TemplateForm {templateData} bind:errors />
+				<div class="mt-4 flex justify-end gap-2">
+					<button 
+						type="button"
+						class="{getButtonClasses('outline')}"
+						onclick={closeAddModal}
+					>
+						Cancel
+					</button>
+					<button 
+						class="{getButtonClasses('default')}" 
+						type="submit"
+					>
+						Create
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
 
 <style>
 	@keyframes slide {
