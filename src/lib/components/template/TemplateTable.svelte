@@ -310,6 +310,29 @@
 
 		return `${baseClasses} ${variants[variant]} ${sizes[size]}`;
 	}
+
+	async function exportFormTemplate(templateId: string, templateTitle: string) {
+		const response = await fetch(`/api/server/template/export`, {
+			method: 'POST',
+			body: JSON.stringify({
+				// sessionId,
+				templateId: templateId,
+			}),
+			headers: { 'content-type': 'application/json' }
+		});
+		if (!response.ok) {
+			throw new Error(`Failed to export care plan: ${response.statusText}`);
+		}
+
+		const filename = `${templateTitle}.json`;
+		const blob = await response.blob();
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(blob);
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+	}
 </script>
 
 <div class="my-4 flex items-center justify-between">
