@@ -7,7 +7,6 @@
 		FormHelper
 	} from '$lib/index';
 	import FieldLibrarySidebar from '$lib/components/common/FieldLibrarySidebar.svelte';
-	import FieldTemplateManager from '$lib/components/common/FieldTemplateManager.svelte';
 	import { healthCarePlugins, basicCards } from '$lib/components/common/questionTypes';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -40,7 +39,6 @@
 
 	let cardToOpen = $state();
 	let sectionToOpen = $state();
-	let showTemplateManager = $state(false);
 
 	$effect(() => {
 		uiSections = data.templateInfo.FormSections[0].Subsections;
@@ -312,9 +310,6 @@
 	<FormHelper {closeSheet} {handleQuestionCardUpdate} bind:questionCard={cardToOpen} bind:errors bind:questionList={uiSections}/>
 {/if}
 
-{#if showTemplateManager}
-	<FieldTemplateManager bind:isOpen={showTemplateManager} onClose={() => showTemplateManager = false} />
-{/if}
 
 <!-- Section -->
 
@@ -344,15 +339,6 @@
                     </Breadcrumb.List>
                 </Breadcrumb.Root>
                 
-                <!-- Field Library Management Button -->
-                <Button
-                    variant="outline"
-                    onclick={() => showTemplateManager = true}
-                    class="flex items-center gap-2"
-                >
-                    <Icon icon="material-symbols:widgets" class="h-4 w-4" />
-                    Field Library
-                </Button>
                 <!-- <div class="ml-auto flex items-center">
                     <Dialog.Root>
                         <Dialog.Trigger class="{buttonVariants({ variant: 'outline' })} flex"></Dialog.Trigger>

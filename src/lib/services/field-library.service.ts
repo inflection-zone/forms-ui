@@ -53,11 +53,12 @@ export interface FieldLibraryTemplate {
 
 export class FieldLibraryService {
     private static instance: FieldLibraryService;
-    private baseUrl = '/api/v1/field-library';
+    private baseUrl = '/api/server/field-library';
     private cache: Map<string, any> = new Map();
     private cacheTimeout = 5 * 60 * 1000; // 5 minutes
 
     private constructor() {}
+
 
     public static getInstance(): FieldLibraryService {
         if (!FieldLibraryService.instance) {
@@ -86,7 +87,8 @@ export class FieldLibraryService {
             throw new Error(data.Message || 'Failed to fetch categories');
         } catch (error) {
             console.error('Error fetching field library categories:', error);
-            return this.getDefaultCategories();
+            // Return the actual seeded categories as fallback
+            return this.getSeededCategories();
         }
     }
 
@@ -372,9 +374,9 @@ export class FieldLibraryService {
     }
 
     /**
-     * Get default categories when API fails
+     * Get seeded categories from your field library
      */
-    private getDefaultCategories(): FieldLibraryCategory[] {
+    private getSeededCategories(): FieldLibraryCategory[] {
         return [
             {
                 name: 'text-based',
@@ -385,11 +387,107 @@ export class FieldLibraryService {
                 fields: []
             },
             {
+                name: 'numeric',
+                displayName: 'Numeric',
+                description: 'Numeric fields for numbers, currency, and mathematical values',
+                icon: 'carbon:string-integer',
+                fieldCount: 5,
+                fields: []
+            },
+            {
+                name: 'selection-choice',
+                displayName: 'Selection & Choice',
+                description: 'Selection fields for single and multiple choice options',
+                icon: 'mdi:checkbox-outline',
+                fieldCount: 8,
+                fields: []
+            },
+            {
+                name: 'date-time',
+                displayName: 'Date & Time',
+                description: 'Date and time picker fields with various formats',
+                icon: 'uiw:date',
+                fieldCount: 7,
+                fields: []
+            },
+            {
+                name: 'rating-feedback',
+                displayName: 'Rating & Feedback',
+                description: 'Rating and feedback collection fields',
+                icon: 'ri:star-line',
+                fieldCount: 6,
+                fields: []
+            },
+            {
+                name: 'measurement',
+                displayName: 'Measurement',
+                description: 'Measurement fields for physical quantities',
+                icon: 'material-symbols:straighten-outline',
+                fieldCount: 6,
+                fields: []
+            },
+            {
+                name: 'geographic',
+                displayName: 'Geographic',
+                description: 'Location and address-related fields',
+                icon: 'pajamas:location',
+                fieldCount: 6,
+                fields: []
+            },
+            {
+                name: 'media-file',
+                displayName: 'Media & File',
+                description: 'File upload and media-related fields',
+                icon: 'ph:file-duotone',
+                fieldCount: 7,
+                fields: []
+            },
+            {
                 name: 'healthcare',
-                displayName: 'Health Care',
+                displayName: 'Healthcare',
                 description: 'Specialized healthcare and medical fields',
                 icon: 'healthicons:medical-kit',
                 fieldCount: 8,
+                fields: []
+            },
+            {
+                name: 'business-professional',
+                displayName: 'Business & Professional',
+                description: 'Business and professional form fields',
+                icon: 'material-symbols:business-center-outline',
+                fieldCount: 8,
+                fields: []
+            },
+            {
+                name: 'educational',
+                displayName: 'Educational',
+                description: 'Educational and academic form fields',
+                icon: 'material-symbols:school-outline',
+                fieldCount: 8,
+                fields: []
+            },
+            {
+                name: 'e-commerce',
+                displayName: 'E-commerce',
+                description: 'E-commerce and shopping-related fields',
+                icon: 'material-symbols:shopping-cart-outline',
+                fieldCount: 8,
+                fields: []
+            },
+            {
+                name: 'survey-research',
+                displayName: 'Survey & Research',
+                description: 'Survey and research data collection fields',
+                icon: 'material-symbols:poll-outline',
+                fieldCount: 7,
+                fields: []
+            },
+            {
+                name: 'interactive-advanced',
+                displayName: 'Interactive & Advanced',
+                description: 'Advanced interactive and dynamic fields',
+                icon: 'material-symbols:settings-outline',
+                fieldCount: 12,
                 fields: []
             }
         ];

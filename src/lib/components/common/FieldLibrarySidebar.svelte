@@ -8,6 +8,7 @@
 	import * as Select from '$lib/components/ui/select/index.js';
 	import { basicCards, healthCarePlugins } from '$lib/components/common/questionTypes';
 	import { addToast } from '$lib/components/toast/toast.store';
+	import { fieldLibraryService, type FieldLibraryCategory, type FieldLibraryItem } from '$lib/services/field-library.service';
 
 	interface Props {
 		typeOfQuestion: 'Basic' | 'HealthCare' | 'FieldLibrary';
@@ -44,42 +45,62 @@
 		await loadFieldLibraryCategories();
 	});
 
+	// Watch for selectedCategory changes and load fields
+	$effect(() => {
+		if (selectedCategory && fieldLibraryCategories.length > 0) {
+			onCategoryChange(selectedCategory);
+		}
+	});
+
 	async function loadFieldLibraryCategories() {
 		try {
 			isLoading = true;
-			// Mock data for now to avoid API issues
-			fieldLibraryCategories = [
-				{
-					name: 'text-based',
-					displayName: 'Text Based',
-					description: 'Text input fields for various text-based data collection',
-					icon: 'fluent:text-12-regular',
-					fieldCount: 7,
-					fields: []
-				},
-				{
-					name: 'healthcare',
-					displayName: 'Health Care',
-					description: 'Specialized healthcare and medical fields',
-					icon: 'healthicons:medical-kit',
-					fieldCount: 8,
-					fields: []
-				}
-			];
-			if (fieldLibraryCategories.length > 0 && !selectedCategory) {
-				selectedCategory = fieldLibraryCategories[0].name;
+			const categories = await fieldLibraryService.getCategories();
+			fieldLibraryCategories = categories;
+			if (categories.length > 0 && !selectedCategory) {
+				selectedCategory = categories[0].name;
+				// Load fields for the first category
+				await onCategoryChange(selectedCategory);
 			}
 		} catch (error) {
 			console.error('Failed to load field library categories:', error);
+			addToast({
+				message: 'Failed to load field library categories',
+				type: 'error',
+				timeout: 3000
+			});
 		} finally {
 			isLoading = false;
 		}
 	}
 
 	async function onCategoryChange(categoryName: string) {
+		console.log('Category change triggered with:', categoryName);
+		
+		if (!categoryName) return;
+		
 		selectedCategory = categoryName;
-		// Mock implementation
-		console.log('Category changed to:', categoryName);
+		try {
+			isLoading = true;
+			const fields = await fieldLibraryService.getFieldsByCategory(categoryName);
+			console.log('Loaded fields for category:', categoryName, fields);
+			
+			// Update the category with loaded fields
+			const categoryIndex = fieldLibraryCategories.findIndex(cat => cat.name === categoryName);
+			if (categoryIndex !== -1) {
+				fieldLibraryCategories[categoryIndex].fields = fields;
+				console.log('Updated category fields:', fieldLibraryCategories[categoryIndex]);
+			}
+		} catch (error) {
+			console.error('Failed to load fields for category:', categoryName, error);
+			addToast({
+				message: `Failed to load fields for ${categoryName}`,
+				type: 'error',
+				timeout: 3000
+			});
+		} finally {
+			isLoading = false;
+		}
 	}
 
 	async function onSearch() {
@@ -90,11 +111,15 @@
 
 		try {
 			isLoading = true;
-			// Mock search results
-			searchResults = [];
-			console.log('Searching for:', searchQuery);
+			const results = await fieldLibraryService.searchFields(searchQuery);
+			searchResults = results;
 		} catch (error) {
-			console.error('Failed to search fields:', error);
+			console.error('Search failed:', error);
+			addToast({
+				message: 'Search failed',
+				type: 'error',
+				timeout: 3000
+			});
 		} finally {
 			isLoading = false;
 		}
@@ -115,6 +140,7 @@
 			return healthCarePlugins;
 		} else if (typeOfQuestion === 'FieldLibrary') {
 			if (searchQuery.trim() && searchResults.length > 0) {
+				console.log('Using search results:', searchResults);
 				return searchResults.map((field: any) => ({
 					id: field.id,
 					name: field.name,
@@ -125,6 +151,9 @@
 				}));
 			}
 			const category = fieldLibraryCategories.find(c => c.name === selectedCategory);
+			console.log('Selected category:', selectedCategory);
+			console.log('Found category:', category);
+			console.log('Category fields:', category?.fields);
 			return category ? category.fields.map((field: any) => ({
 				id: field.id,
 				name: field.name,
@@ -209,7 +238,7 @@
 				<!-- Category Selection -->
 				{#if !searchQuery.trim()}
 					<div class="mb-3">
-						<Select.Root type="single" bind:value={selectedCategory} onSelectedChange={(e) => onCategoryChange(e.detail)}>
+						<Select.Root type="single" bind:value={selectedCategory} onValueChange={onCategoryChange}>
 							<Select.Trigger class="w-full">
 								<Select.Value placeholder="Select category" />
 							</Select.Trigger>
