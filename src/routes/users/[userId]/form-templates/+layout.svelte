@@ -13,11 +13,14 @@
 	const baseUrl = env.PUBLIC_THIS_BASE_URL;
 
 	onMount(async () => {
+		// Only store templates with IsFavourite: true
 		for (const template of data.templates) {
-			await templateStorage.set(template.id, template);
+			if (template.IsFavourite === true) {
+				await templateStorage.set(template.id, template);
+			}
 		}
 		await generalStorage.set('this_base_url', {baseUrl});
-		console.log('✅ Templates saved to IndexedDB');
+		console.log('✅ Favourite templates saved to IndexedDB');
 	});
 </script>
 

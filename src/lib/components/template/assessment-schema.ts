@@ -24,7 +24,8 @@ export const assessmentSchema = z.object({
         .nullable()
         .optional(),
     DefaultSectionNumbering: z.boolean().default(true),
-    ItemsPerPage: z.string().default('AllQuestions')
+    ItemsPerPage: z.string().default('AllQuestions'),
+    IsFavourite: z.boolean().default(false)
 });
 export type AssessmentSchema = typeof assessmentSchema;
 
