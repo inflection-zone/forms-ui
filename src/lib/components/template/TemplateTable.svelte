@@ -29,16 +29,19 @@
 	let link: string = $state();
 	let open = $state(false);
 
-	let isOpen = $state(false);
 	let copied = $state(false);
-	let activeMenu = $state(null);
 	
 	// Modal states for native implementations
 	let showEditModal = $state(false);
 	let showLinkModal = $state(false);
 	let showDeleteModal = $state(false);
+	let showEmbedModal = $state(false);
 	let currentTemplateId = $state('');
 	let currentTemplateData = $state(null);
+	
+	// Tooltip state
+	let hoveredButton = $state(null);
+	let embedCode = $state('');
 
 	// Format date to readable format
 	function formatDate(dateString: string): string {
@@ -258,36 +261,52 @@
 		}
 	}
 
-	function toggleMenu(id) {
-		activeMenu = activeMenu === id ? null : id;
-	}
-
 	// Helper functions for modal operations
 	function openEditModal(templateData) {
 		currentTemplateData = templateData;
 		showEditModal = true;
-		activeMenu = null;
 	}
 
 	function openLinkModal(templateId: string) {
 		currentTemplateId = templateId;
 		showLinkModal = true;
-		activeMenu = null;
+	}
+
+	function openEmbedModal(templateId: string) {
+		currentTemplateId = templateId;
+		generateEmbedCode(templateId);
+		showEmbedModal = true;
 	}
 
 	function openDeleteModal(templateId: string) {
 		currentTemplateId = templateId;
 		showDeleteModal = true;
-		activeMenu = null;
 	}
 
 	function closeAllModals() {
 		showEditModal = false;
 		showLinkModal = false;
 		showDeleteModal = false;
+		showEmbedModal = false;
 		currentTemplateId = '';
 		currentTemplateData = null;
-		activeMenu = null;
+		embedCode = '';
+	}
+
+	function generateEmbedCode(templateId: string) {
+		const baseUrl = window.location.origin;
+		embedCode = `<iframe src="${baseUrl}/embed/form/${templateId}" width="100%" height="600" frameborder="0" style="border: none; border-radius: 8px;"></iframe>`;
+	}
+
+	async function copyEmbedCode() {
+		try {
+			await navigator.clipboard.writeText(embedCode);
+			copied = true;
+			setTimeout(() => (copied = false), 2000);
+			successMessage('Embed code copied');
+		} catch (error) {
+			errorMessage('Failed to copy embed code');
+		}
 	}
 
 	// Button variant classes
@@ -344,7 +363,7 @@
 				<th class="p-4 text-center">Tenant Code</th> -->
 				<th class=" w-32 p-3 text-start">Created At</th>
 				<th class=" w-20 p-3 text-center">Version</th>
-				<th class=" w-20 p-3 text-center">Actions</th>
+				<th class=" w-40 p-3 text-center">Actions</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -367,54 +386,92 @@
 						<td class="mx-10 px-3 py-1 text-sm">{row.Type || 'N/A'}</td>
 						<td class="px-3 py-1 text-start text-sm">{formatDate(row.CreatedAt)}</td>
 						<td class="text-center text-sm">{row.CurrentVersion || '-'}</td>
-						<td class=" text-center text-sm">
-							<div class="relative">
-								<button
-									class="{getButtonClasses('ghost', 'sm')} rotate-90 items-center rounded-md p-2"
-									onclick={() => toggleMenu(row.id)}
-								>
-									⠇
-								</button>
+						<td class="text-center text-sm">
+							<div class="flex items-center justify-center gap-1">
+								<!-- Edit Button -->
+								<div class="relative">
+									<button
+										class="{getButtonClasses('ghost', 'sm')} p-2 h-10 w-10"
+										onclick={() => openEditModal(row)}
+										onmouseenter={() => hoveredButton = `edit-${row.id}`}
+										onmouseleave={() => hoveredButton = null}
+									>
+										<Icon icon="material-symbols:edit-outline" width="20" height="20" />
+									</button>
+									{#if hoveredButton === `edit-${row.id}`}
+										<div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-50">
+											Edit
+										</div>
+									{/if}
+								</div>
 
-								{#if activeMenu === row.id}
-									<div class="absolute right-0 top-8 z-50 min-w-[144px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
-										<button
-											class="{getButtonClasses('ghost', 'sm')} w-full justify-start"
-											onclick={() => openEditModal(row)}
-										>
-											<Icon icon="material-symbols:edit-outline" width="24" height="24" />
-											<span>Edit</span>
-										</button>
-										
-										<a
-											href="/users/{userId}/form-templates/{row.id}/preview"
-											class="{getButtonClasses('ghost', 'sm')} w-full justify-start"
-										>
-											<Icon icon="icon-park-outline:preview-open" width="24" height="24" />
-											<span>Preview</span>
-										</a>
+								<!-- Preview Button -->
+								<div class="relative">
+									<a
+										href="/users/{userId}/form-templates/{row.id}/preview"
+										class="{getButtonClasses('ghost', 'sm')} p-2 h-10 w-10"
+										onmouseenter={() => hoveredButton = `preview-${row.id}`}
+										onmouseleave={() => hoveredButton = null}
+									>
+										<Icon icon="icon-park-outline:preview-open" width="20" height="20" />
+									</a>
+									{#if hoveredButton === `preview-${row.id}`}
+										<div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-50">
+											Preview
+										</div>
+									{/if}
+								</div>
 
-										<button
-											class="{getButtonClasses('ghost', 'sm')} w-full justify-start"
-											onclick={() => openLinkModal(row.id)}
-										>
-											<Icon icon="material-symbols:link" width="20" height="20" />
-											<span>Generate Link</span>
-										</button>
+								<!-- Generate Link Button -->
+								<div class="relative">
+									<button
+										class="{getButtonClasses('ghost', 'sm')} p-2 h-10 w-10"
+										onclick={() => openLinkModal(row.id)}
+										onmouseenter={() => hoveredButton = `link-${row.id}`}
+										onmouseleave={() => hoveredButton = null}
+									>
+										<Icon icon="material-symbols:link" width="20" height="20" />
+									</button>
+									{#if hoveredButton === `link-${row.id}`}
+										<div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-50">
+											Generate Link
+										</div>
+									{/if}
+								</div>
 
-										<button
-											class="{getButtonClasses('ghost', 'sm')} w-full justify-start text-red-500"
-											onclick={() => openDeleteModal(row.id)}
-										>
-											<Icon
-												icon="material-symbols:delete-outline"
-												width="24"
-												height="24"
-											/>
-											<span>Delete</span>
-										</button>
-									</div>
-								{/if}
+								<!-- Embed Button -->
+								<div class="relative">
+									<button
+										class="{getButtonClasses('ghost', 'sm')} p-2 h-10 w-10"
+										onclick={() => openEmbedModal(row.id)}
+										onmouseenter={() => hoveredButton = `embed-${row.id}`}
+										onmouseleave={() => hoveredButton = null}
+									>
+										<Icon icon="material-symbols:code" width="20" height="20" />
+									</button>
+									{#if hoveredButton === `embed-${row.id}`}
+										<div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-50">
+											Embed Form
+										</div>
+									{/if}
+								</div>
+
+								<!-- Delete Button -->
+								<div class="relative">
+									<button
+										class="{getButtonClasses('ghost', 'sm')} p-2 h-10 w-10 text-red-500 hover:text-red-600"
+										onclick={() => openDeleteModal(row.id)}
+										onmouseenter={() => hoveredButton = `delete-${row.id}`}
+										onmouseleave={() => hoveredButton = null}
+									>
+										<Icon icon="material-symbols:delete-outline" width="20" height="20" />
+									</button>
+									{#if hoveredButton === `delete-${row.id}`}
+										<div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-50">
+											Delete
+										</div>
+									{/if}
+								</div>
 							</div>
 						</td>
 					</tr>
@@ -545,6 +602,58 @@
 					onclick={openLink}
 				>
 					Open
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Embed Modal -->
+{#if showEmbedModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.target === e.currentTarget && closeAllModals()} onkeydown={(e) => e.key === 'Escape' && closeAllModals()}>
+		<div class="max-w-2xl rounded-md bg-background p-6 shadow-lg" role="document">
+			<div class="mb-4">
+				<h2 class="text-lg font-semibold">Embed Form</h2>
+				<p class="text-sm text-muted-foreground">Copy this embed code to add the form to your website.</p>
+			</div>
+			<div class="mb-4">
+				<label for="embed-code" class="block text-sm font-medium mb-2">Embed Code:</label>
+				<div class="relative">
+					<textarea
+						id="embed-code"
+						bind:value={embedCode}
+						class="w-full h-24 rounded-lg border border-input bg-background px-4 py-2 text-sm resize-none"
+						readonly
+					></textarea>
+					<Icon
+						icon={copied ? 'material-symbols:check-circle-rounded' : 'ion:copy-outline'}
+						width="24"
+						height="24"
+						class="absolute right-2 top-2 cursor-pointer p-1"
+						onclick={copyEmbedCode}
+					/>
+				</div>
+			</div>
+			<div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+				<h3 class="text-sm font-medium mb-2">Preview:</h3>
+				<div class="text-xs text-muted-foreground space-y-1">
+					<p>• The form will be embedded as an iframe</p>
+					<p>• Responsive design will adapt to container width</p>
+					<p>• Height is set to 600px (adjustable in the code)</p>
+				</div>
+			</div>
+			<div class="flex justify-end gap-2">
+				<button 
+					class="{getButtonClasses('outline')}"
+					onclick={closeAllModals}
+				>
+					Cancel
+				</button>
+				<button 
+					class="{getButtonClasses('default')}"
+					onclick={copyEmbedCode}
+				>
+					Copy Code
 				</button>
 			</div>
 		</div>
