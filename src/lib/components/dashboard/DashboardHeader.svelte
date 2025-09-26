@@ -4,46 +4,20 @@
 	let { formData, userId, templateId }: {
 		formData: {
 			title: string;
+			description?: string;
 			created: string;
 			lastModified: string;
 			status: string;
+			version?: string;
+			displayCode?: string;
+			type?: string;
 			questions: number;
 		};
 		userId: string;
 		templateId: string;
 	} = $props();
 
-	let activeTab = $state('');
-
-	const tabs = [
-		{ id: 'edit', label: 'Edit Form', icon: 'lucide:edit' },
-		{ id: 'preview', label: 'Preview', icon: 'lucide:eye' },
-		{ id: 'share', label: 'Share Form', icon: 'lucide:share' },
-		{ id: 'delete', label: 'Delete', icon: 'lucide:trash-2' }
-	];
-
-	function handleTabClick(tabId: string) {
-		activeTab = tabId;
-		
-		// Handle specific tab actions
-		switch (tabId) {
-			case 'edit':
-				window.location.href = `/users/${userId}/form-templates/${templateId}/forms`;
-				break;
-			case 'preview':
-				// Open preview in new tab
-				window.open(`/users/${userId}/form-templates/${templateId}/preview`, '_blank');
-				break;
-			case 'share':
-				// Handle share functionality
-				handleShareForm();
-				break;
-			case 'delete':
-				// Handle delete confirmation
-				handleDeleteForm();
-				break;
-		}
-	}
+	let showTooltip = $state(false);
 
 	function handleShareForm() {
 		// Copy form URL to clipboard
@@ -64,32 +38,74 @@
 </script>
 
 <div class="bg-card rounded-xl mb-6 shadow-sm border border-border">
+
+
 	<!-- Header Info -->
 	<div class="p-6 border-b border-border">
-		<h1 class="text-2xl font-semibold mb-4 text-card-foreground">{formData.title}</h1>
-		<div class="flex gap-6 text-muted-foreground text-sm flex-wrap">
-			<span>Created: {formData.created}</span>
-			<span>Last Modified: {formData.lastModified}</span>
-			<span>Status: {formData.status}</span>
-			<span>Questions: {formData.questions}</span>
-		</div>
-	</div>
+		<div class="flex items-start justify-between gap-6">
+			<!-- Title and Description Section -->
+			<div class="flex-1">
+				<div class="flex items-center justify-between mb-2">
+					<h1 class="text-2xl font-semibold text-card-foreground">{formData.title}</h1>
+					<div class="flex items-center gap-2">
+						<div class="relative">
+							<button
+								class="p-1 hover:bg-accent rounded-md transition-colors"
+								onclick={() => handleShareForm()}
+								onmouseenter={() => (showTooltip = true)}
+								onmouseleave={() => (showTooltip = false)}
+							>
+								<Icon icon="lucide:link" class="w-5 h-5 text-muted-foreground hover:text-foreground" />
+							</button>
+							{#if showTooltip}
+								<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap z-50">
+									Share Form
+								</div>
+							{/if}
+						</div>
+						<button
+							class="p-1 hover:bg-accent rounded-md transition-colors"
+							onclick={() => window.location.href = `/users/${userId}/form-templates/${templateId}/preview`}
+							title="Preview Form"
+						>
+							<Icon icon="lucide:eye" class="w-5 h-5 text-muted-foreground hover:text-foreground" />
+						</button>
+					</div>
+				</div>
+				{#if formData.description}
+					<p class="text-muted-foreground mb-4 text-sm leading-relaxed">{formData.description}</p>
+				{/if}
+				<div class="flex gap-6 text-muted-foreground text-sm flex-wrap">
+					<span>Created: {formData.created}</span>
+					<span>Last Modified: {formData.lastModified}</span>
+					<span>Status: {formData.status}</span>
+					<span>Questions: {formData.questions}</span>
+					{#if formData.version}
+						<span>Version: {formData.version}</span>
+					{/if}
+					{#if formData.type}
+						<span>Type: {formData.type}</span>
+					{/if}
+				</div>
+				{#if formData.displayCode}
+					<div class="mt-2">
+						<span class="text-xs text-muted-foreground">Display Code: </span>
+						<code class="text-xs bg-muted px-2 py-1 rounded font-mono">{formData.displayCode}</code>
+					</div>
+				{/if}
+			</div>
 
-	<!-- Action Tabs -->
-	<div class="p-1">
-		<div class="flex">
-			{#each tabs as tab}
+			<!-- Action Buttons -->
+			<div class="flex gap-3 flex-shrink-0">
 				<button 
-					class="group flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium rounded-md transition-colors {activeTab === tab.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground text-muted-foreground'}"
-					onclick={() => handleTabClick(tab.id)}
+					class="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+					onclick={() => window.location.href = `/users/${userId}/form-templates/${templateId}/forms`}
 				>
-					<Icon 
-						icon={tab.icon} 
-						class="w-4 h-4 transition-colors {activeTab === tab.id ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'}" 
-					/>
-					{tab.label}
+					<Icon icon="lucide:edit" class="w-4 h-4" />
+					Edit Form
 				</button>
-			{/each}
+			
+			</div>
 		</div>
 	</div>
 </div>

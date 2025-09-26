@@ -52,6 +52,8 @@ export const searchQuestionResponse = async (
     }
     console.log('Search string is ', searchString);
     const url = BACKEND_API_URL + `/question-responses/search${searchString}`;
+    console.log("url is ", url);
     const res = await get_(url);
+    console.log("res is ", res);
     return res;
 };

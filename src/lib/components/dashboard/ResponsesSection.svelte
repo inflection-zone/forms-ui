@@ -1,11 +1,26 @@
 <script lang="ts">
-	let { formData, responses }: { formData: any; responses: any[] } = $props();
+	let { templateInfo }: { templateInfo: any } = $props();
+
+	// Extract form submissions from templateInfo
+	let responses = $derived(templateInfo?.Items?.map((item: any) => ({
+		id: item.FormSubmission?.id || 'N/A',
+		title: item.FormSubmission?.Title || 'N/A',
+		submitted: item.FormSubmission?.SubmittedAt ? new Date(item.FormSubmission.SubmittedAt).toLocaleDateString() : 'N/A',
+		status: item.FormSubmission?.Status || 'N/A',
+		type: item.FormSubmission?.Type || 'N/A',
+		link: item.FormSubmission?.Link || '#',
+		createdAt: item.FormSubmission?.CreatedAt ? new Date(item.FormSubmission.CreatedAt).toLocaleDateString() : 'N/A'
+	})) || []);
+
+	let totalResponses = $derived(responses.length);
+
+	console.log('Responses are ', templateInfo);
 </script>
 
 <div class="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
 	<div class="p-6 border-b border-border">
 		<div class="flex flex-wrap gap-4 items-center justify-between">
-			<h3 class="text-lg font-semibold text-card-foreground">Response Explorer ({formData.totalResponses.toLocaleString()} responses)</h3>
+			<h3 class="text-lg font-semibold text-card-foreground">Response Explorer ({totalResponses.toLocaleString()} responses)</h3>
 			<div class="flex gap-2">
 				<input 
 					type="text" 
@@ -42,11 +57,11 @@
 		<thead>
 			<tr class="bg-muted">
 				<th class="px-4 py-3 text-left text-sm font-semibold text-muted-foreground"></th>
-				<th class="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Response ID</th>
+				<!-- <th class="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Response ID</th> -->
+				<!-- <th class="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Title</th> -->
 				<th class="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Submitted</th>
 				<th class="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Status</th>
-				<th class="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Rating</th>
-				<th class="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Source</th>
+				<th class="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Type</th>
 				<th class="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Actions</th>
 			</tr>
 		</thead>
@@ -54,21 +69,21 @@
 			{#each responses as response}
 				<tr class="hover:bg-muted/50 border-b border-border">
 					<td class="px-4 py-3"><input type="checkbox" class="rounded"></td>
-					<td class="px-4 py-3">
+					<!-- <td class="px-4 py-3">
 						<span class="text-primary font-medium cursor-pointer">{response.id}</span>
-					</td>
+					</td> -->
+					<!-- <td class="px-4 py-3 text-foreground">{response.title}</td> -->
 					<td class="px-4 py-3 text-foreground">{response.submitted}</td>
 					<td class="px-4 py-3">
-						<span class="px-2 py-1 rounded-full text-xs font-medium {response.status === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">
+						<span class="px-2 py-1 rounded-full text-xs font-medium {response.status === 'Submitted' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">
 							{response.status}
 						</span>
 					</td>
-					<td class="px-4 py-3 text-foreground">{response.rating}</td>
-					<td class="px-4 py-3 text-foreground">{response.source}</td>
+					<td class="px-4 py-3 text-foreground">{response.type}</td>
 					<td class="px-4 py-3">
-						<button class="px-3 py-1 bg-secondary text-secondary-foreground rounded text-xs hover:bg-secondary/80">
+						<a href={response.link} target="_blank" class="px-3 py-1 bg-secondary text-secondary-foreground rounded text-xs hover:bg-secondary/80">
 							View
-						</button>
+						</a>
 					</td>
 				</tr>
 			{/each}
