@@ -151,10 +151,11 @@
 					<p class="text-sm text-muted-foreground mt-1">Learn how to embed this form in your website</p>
 				</div>
 				<button 
-					class="{getButtonClasses('ghost')} h-8 w-8 p-0" 
+					class="flex items-center justify-center h-8 w-8 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
 					onclick={closeModal}
+					title="Close"
 				>
-					<Icon icon="material-symbols:close" width="20" height="20" />
+					<Icon icon="material-symbols:close" width="20" height="20" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
 				</button>
 			</div>
 
