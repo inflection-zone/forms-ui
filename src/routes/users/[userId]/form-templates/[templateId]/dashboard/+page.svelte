@@ -4,13 +4,10 @@
 	import DashboardHeader from '$lib/components/dashboard/DashboardHeader.svelte';
 	import DashboardTabs from '$lib/components/dashboard/DashboardTabs.svelte';
 	import OverviewSection from '$lib/components/dashboard/OverviewSection.svelte';
-	import AnalyticsSection from '$lib/components/dashboard/AnalyticsSection.svelte';
 	import ResponsesSection from '$lib/components/dashboard/ResponsesSection.svelte';
 	import IndividualSection from '$lib/components/dashboard/IndividualSection.svelte';
-	import SegmentsSection from '$lib/components/dashboard/SegmentsSection.svelte';
 	import ExportSection from '$lib/components/dashboard/ExportSection.svelte';
 	import Chatbot from '$lib/components/dashboard/Chatbot.svelte';
-	import Icon from '@iconify/svelte';
 	import { page } from '$app/state';
 	import type { PageServerData } from './$types';
 
@@ -25,24 +22,11 @@
 		{ content: '👋 Hi! Ask me anything about your form data.', type: 'bot' }
 	]);
 
-	let templateInfo = $state(data.templateInfo);
 
     const userId = $derived(page.params.userId);
     const templateId = $derived(page.params.templateId);
 	let chatInput = $state('');
 
-	// Function to calculate question count from template data
-	// function calculateQuestionCount(templateData: any): number {
-	// 	if (!templateData?.Items) return 0;
-		
-	// 	let questionCount = 0;
-	// 	templateData.Items.forEach((section: any) => {
-	// 		if (section.Questions && Array.isArray(section.Questions)) {
-	// 			questionCount += section.Questions.length;
-	// 		}
-	// 	});
-	// 	return questionCount;
-	// }
 
 	// Function to calculate submitted responses count from template info data
 	function calculateSubmittedResponsesCount(templateInfo: any): number {
@@ -51,6 +35,16 @@
 		// Count only responses where FormSubmission.Status is "Submitted"
 		return templateInfo.Items.filter((item: any) => 
 			item.FormSubmission?.Status === "Submitted"
+		).length;
+	}
+
+	// Function to calculate in-progress responses count from template info data
+	function calculateInProgressResponsesCount(templateInfo: any): number {
+		if (!templateInfo?.Items || !Array.isArray(templateInfo.Items)) return 0;
+		
+		// Count only responses where FormSubmission.Status is "InProgress"
+		return templateInfo.Items.filter((item: any) => 
+			item.FormSubmission?.Status === "InProgress"
 		).length;
 	}
 
@@ -72,30 +66,11 @@
 		version: data.templateInfo?.Version || '1',
 		displayCode: data.templateInfo?.DisplayCode || '',
 		type: data.templateInfo?.Type || '',
-		// questions: calculateQuestionCount(data.templateInfo), // Calculate from actual template data
 		questions: data.templateInfo.TotalCount || 0,
-		totalResponses: calculateSubmittedResponsesCount(data.templateInfo), // Calculate submitted responses count
-		// completionRate: 94.2, // This should be calculated from actual data
-		// medianTime: '3m 24s', // This should be calculated from actual data
-		// highestDropoff: 'Q5' // This should be calculated from actual data
+		totalResponses: calculateSubmittedResponsesCount(data.templateInfo),
+		inProgressResponses: calculateInProgressResponsesCount(data.templateInfo)
 	});
 
-	const responses = [
-		{
-			id: '#R001247',
-			submitted: '2 hours ago',
-			status: 'Completed',
-			rating: '⭐⭐⭐⭐⭐',
-			source: 'Email Campaign'
-		},
-		{
-			id: '#R001246',
-			submitted: '3 hours ago',
-			status: 'Partial',
-			rating: '⭐⭐⭐⭐',
-			source: 'Social Media'
-		}
-	];
 
 	// Chart data
 	const responseTrendData = {
@@ -129,15 +104,6 @@
 		}]
 	};
 
-	const satisfactionData = {
-		labels: ['1⭐', '2⭐', '3⭐', '4⭐', '5⭐'],
-		datasets: [{
-			label: 'Responses',
-			data: [23, 45, 156, 387, 636],
-			backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981'],
-			borderRadius: 4
-		}]
-	};
 
 	const funnelData = {
 		labels: ['Started', 'Partial', 'Completed'],
@@ -198,7 +164,7 @@
 
 </script>
 
-<div class=" min-h-screen bg-background text-foreground pt-16">
+<div class=" min-h-screen bg-background text-foreground pt-8">
 	<!-- SIDEBAR -->
 	<DashboardSidebar {activeView} onViewChange={showView} />
 
@@ -212,24 +178,18 @@
 
 		<!-- CONTENT SECTIONS -->
 		{#if activeView === 'overview'}
-			<OverviewSection {formData} {responseTrendData} {sourceData} {userId} {templateId} />
+			<OverviewSection {formData} {responseTrendData} {sourceData} {userId} {templateId} submissionsData={data.submissions} />
 		{/if}
 
-		<!-- {#if activeView === 'analytics'}
-			<AnalyticsSection {performanceData} {satisfactionData} {funnelData} />
-		{/if} -->
 
 		{#if activeView === 'responses'}
-			<ResponsesSection {templateInfo} />
+			<ResponsesSection templateInfo={data.templateInfo} />
 		{/if}
 
 		{#if activeView === 'individual'}
-			<IndividualSection {templateInfo} />
+			<IndividualSection templateInfo={data.templateInfo} />
 		{/if}
 
-		<!-- {#if activeView === 'segments'}
-			<SegmentsSection />
-		{/if} -->
 
 		{#if activeView === 'export'}
 			<ExportSection />
