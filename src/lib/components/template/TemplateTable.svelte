@@ -264,7 +264,7 @@
 
 	async function handleExportTemplate(templateId: string, templateTitle: string) {
 		try {
-			const response = await fetch('/api/server/export/templates', {
+			const response = await fetch('/api/server/export', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
