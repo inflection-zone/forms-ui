@@ -4,13 +4,16 @@
 	import DashboardHeader from '$lib/components/dashboard/DashboardHeader.svelte';
 	import DashboardTabs from '$lib/components/dashboard/DashboardTabs.svelte';
 	import OverviewSection from '$lib/components/dashboard/OverviewSection.svelte';
-	import AnalyticsSection from '$lib/components/dashboard/AnalyticsSection.svelte';
 	import ResponsesSection from '$lib/components/dashboard/ResponsesSection.svelte';
 	import IndividualSection from '$lib/components/dashboard/IndividualSection.svelte';
-	import SegmentsSection from '$lib/components/dashboard/SegmentsSection.svelte';
 	import ExportSection from '$lib/components/dashboard/ExportSection.svelte';
 	import Chatbot from '$lib/components/dashboard/Chatbot.svelte';
 	import { page } from '$app/state';
+	import type { PageServerData } from './$types';
+
+
+	let { data }: { data: PageServerData } = $props();
+	console.log('Data is ', data);
 
 	// Reactive state
 	let activeView = $state('overview');
@@ -19,39 +22,55 @@
 		{ content: '👋 Hi! Ask me anything about your form data.', type: 'bot' }
 	]);
 
+
     const userId = $derived(page.params.userId);
     const templateId = $derived(page.params.templateId);
 	let chatInput = $state('');
 
-	// Sample data
-	const formData = {
-		title: 'Customer Satisfaction Survey 2024',
-		created: 'March 15, 2024',
-		lastModified: '2 hours ago',
-		status: 'Active',
-		questions: 12,
-		totalResponses: 1247,
-		completionRate: 94.2,
-		medianTime: '3m 24s',
-		highestDropoff: 'Q5'
-	};
 
-	const responses = [
-		{
-			id: '#R001247',
-			submitted: '2 hours ago',
-			status: 'Completed',
-			rating: '⭐⭐⭐⭐⭐',
-			source: 'Email Campaign'
-		},
-		{
-			id: '#R001246',
-			submitted: '3 hours ago',
-			status: 'Partial',
-			rating: '⭐⭐⭐⭐',
-			source: 'Social Media'
-		}
-	];
+	// Function to calculate submitted responses count from template info data
+	function calculateSubmittedResponsesCount(templateInfo: any): number {
+		if (!templateInfo?.Items || !Array.isArray(templateInfo.Items)) return 0;
+		
+		// Count only responses where FormSubmission.Status is "Submitted"
+		return templateInfo.Items.filter((item: any) => 
+			item.FormSubmission?.Status === "Submitted"
+		).length;
+	}
+
+	// Function to calculate in-progress responses count from template info data
+	function calculateInProgressResponsesCount(templateInfo: any): number {
+		if (!templateInfo?.Items || !Array.isArray(templateInfo.Items)) return 0;
+		
+		// Count only responses where FormSubmission.Status is "InProgress"
+		return templateInfo.Items.filter((item: any) => 
+			item.FormSubmission?.Status === "InProgress"
+		).length;
+	}
+
+	// Dynamic data from backend
+	const formData = $derived({
+		title: data.details.Data?.Title || 'Untitled Form',
+		description: data.details.Data?.Description || '',
+		created: data.details.Data?.CreatedAt ? new Date(data.details.Data?.CreatedAt).toLocaleDateString('en-US', { 
+			year: 'numeric', 
+			month: 'long', 
+			day: 'numeric' 
+		}) : 'Unknown',
+		lastModified: data.details.Data?.UpdatedAt ? new Date(data.details.Data.UpdatedAt).toLocaleDateString('en-US', { 
+			year: 'numeric', 
+			month: 'long', 
+			day: 'numeric' 
+		}) : 'Unknown',
+		status: 'Active',
+		version: data.templateInfo?.Version || '1',
+		displayCode: data.templateInfo?.DisplayCode || '',
+		type: data.templateInfo?.Type || '',
+		questions: data.templateInfo.TotalCount || 0,
+		totalResponses: calculateSubmittedResponsesCount(data.templateInfo),
+		inProgressResponses: calculateInProgressResponsesCount(data.templateInfo)
+	});
+
 
 	// Chart data
 	const responseTrendData = {
@@ -85,15 +104,6 @@
 		}]
 	};
 
-	const satisfactionData = {
-		labels: ['1⭐', '2⭐', '3⭐', '4⭐', '5⭐'],
-		datasets: [{
-			label: 'Responses',
-			data: [23, 45, 156, 387, 636],
-			backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981'],
-			borderRadius: 4
-		}]
-	};
 
 	const funnelData = {
 		labels: ['Started', 'Partial', 'Completed'],
@@ -151,9 +161,10 @@
 			sendChatMessage();
 		}
 	}
+
 </script>
 
-<div class="flex min-h-screen bg-background text-foreground pt-16">
+<div class=" min-h-screen bg-background text-foreground pt-8">
 	<!-- SIDEBAR -->
 	<DashboardSidebar {activeView} onViewChange={showView} />
 
@@ -167,29 +178,24 @@
 
 		<!-- CONTENT SECTIONS -->
 		{#if activeView === 'overview'}
-			<OverviewSection {formData} {responseTrendData} {sourceData} />
+			<OverviewSection {formData} {responseTrendData} {sourceData} {userId} {templateId} submissionsData={data.submissions} />
 		{/if}
 
-		{#if activeView === 'analytics'}
-			<AnalyticsSection {performanceData} {satisfactionData} {funnelData} />
-		{/if}
 
 		{#if activeView === 'responses'}
-			<ResponsesSection {formData} {responses} />
+			<ResponsesSection templateInfo={data.templateInfo} />
 		{/if}
 
 		{#if activeView === 'individual'}
-			<IndividualSection />
+			<IndividualSection templateInfo={data.templateInfo} />
 		{/if}
 
-		{#if activeView === 'segments'}
-			<SegmentsSection />
-		{/if}
 
 		{#if activeView === 'export'}
 			<ExportSection />
 		{/if}
 	</main>
+
 </div>
 
 <!-- CHATBOT -->

@@ -6,10 +6,10 @@
 
 	const navItems = [
 		{ id: 'overview', label: 'Overview' },
-		{ id: 'analytics', label: 'Analytics' },
+		// { id: 'analytics', label: 'Analytics' },
 		{ id: 'responses', label: 'Responses' },
 		{ id: 'individual', label: 'Individual' },
-		{ id: 'segments', label: 'Segments' },
+		// { id: 'segments', label: 'Segments' },
 		{ id: 'export', label: 'Export' }
 	];
 </script>
