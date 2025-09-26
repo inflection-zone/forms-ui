@@ -38,6 +38,7 @@ export const load: LayoutServerLoad = async (event: ServerLoadEvent) => {
                 CDATASectionreatedAt: item.CreatedAt,
                 UpdatedAt: item.UpdatedAt,
                 Data: item.Data,
+                IsFavourite: item.IsFavourite || false, // Add IsFavourite property, default to false
                 ...details
             });
         }
