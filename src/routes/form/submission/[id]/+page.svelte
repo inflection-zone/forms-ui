@@ -12,6 +12,9 @@
 	import { cleanAssessmentTemplate } from '$lib/utils';
 	import Icon from '@iconify/svelte';
 	import { IndexedDB } from '$lib/utils/indexedDB';
+	import { offlineSubmissionQueue } from '$lib/utils/offline-submission-queue';
+	import { offlineSyncManager } from '$lib/utils/offline-sync-manager';
+	import { legacyOfflineSyncManager } from '$lib/utils/legacy-offline-sync';
 	import { page } from '$app/state';
 
 	let { data }: { data: PageServerData } = $props();
@@ -34,8 +37,8 @@
 	let isSubmitted = $state(false);
 	let sections = cleanAssessmentTemplate(section);
 
-	const STORAGE_KEY = `Submission`;
-	const SESSION_KEY = `sessionId`;
+	const STORAGE_KEY = `Submission_${formSubmissionKey}`;
+	const SESSION_KEY = `sessionId_${formSubmissionKey}`;
 	const db = new IndexedDB<{ id: string; payload: any }>('form-submissions', 'unsaved_answers');
 
 	const responseTypeMap = {
@@ -112,58 +115,26 @@
 			});
 
 			const syncOfflineData = async () => {
-				const cachedData = await db.getAll();
-				const cachedSubmit = cachedData.find((item) => item.id === `${STORAGE_KEY}`)?.payload;
-
-				if (cachedSubmit?.intentToSubmit) {
-					console.log('Back online: auto-submitting cached submission...');
-					const formData = cachedSubmit.FormData;
-					answers = formData;
-
-					const saveSuccess = await handleSave({ preventDefault: () => {} }, false);
-
-					if (saveSuccess) {
-						try {
-							const res = await fetch('/api/server/submit', {
-								method: 'POST',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify({
-									submissionKey: formSubmissionKey,
-									FormData: formData
-								})
-							});
-
-							const submissionData = await res.json();
-							toastMessage(submissionData);
-
-							if (!submissionData?.message) {
-								addToast({
-									message: 'Submission successful after reconnecting.',
-									type: 'success',
-									timeout: 3000
-								});
-								await db.delete(STORAGE_KEY);
-								console.log('IndexedDB cleared after sync.');
-							}
-						} catch (err) {
-							console.error('Network lost during sync:', err);
-							await db.add({
-								id: STORAGE_KEY,
-								payload: {
-									intentToSubmit: true,
-									Token: formSubmissionKey,
-									FormData: formData
-								}
-							});
-							addToast({
-								message: 'Network lost again during sync. Unsynced data retained.',
-								type: 'error',
-								timeout: 4000
-							});
-						}
-					}
-				} else {
-					console.log('Back online: no submission intent found.');
+				// Use the new sync manager to handle all pending submissions
+				await offlineSyncManager.syncAllPendingSubmissions();
+				
+				// Use the legacy sync manager to handle all legacy submissions
+				const legacyResult = await legacyOfflineSyncManager.syncAllPendingSubmissions();
+				
+				if (legacyResult.success > 0) {
+					addToast({
+						message: `Successfully synced ${legacyResult.success} legacy submissions.`,
+						type: 'success',
+						timeout: 3000
+					});
+				}
+				
+				if (legacyResult.failed > 0) {
+					addToast({
+						message: `Failed to sync ${legacyResult.failed} legacy submissions.`,
+						type: 'error',
+						timeout: 3000
+					});
 				}
 
 				invalidate('app:allNodes');
@@ -248,16 +219,33 @@
 			const submissionTimestamp = new Date().toISOString();
 
 			if (!navigator.onLine) {
+				// Store in the existing IndexedDB for backward compatibility
 				await db.add({
 					id: STORAGE_KEY,
 					payload: {
 						intentToSubmit: true,
 						Token: formSubmissionKey,
 						FormData: structuredCloneSafe(answers),
-						submissionTimestamp
+						submissionTimestamp,
+						FormSubmissionId: formSubmissionId,
+						FormTemplateId: templateInfo.id
 					}
 				});
 				await db.add({ id: SESSION_KEY, payload: { sessionId: formSubmissionId } });
+
+				// Also store in the new offline submission queue
+				try {
+					await offlineSubmissionQueue.addSubmission({
+						formId: formSubmissionKey,
+						formName: templateInfo?.name || 'Form Submission',
+						submissionData: structuredCloneSafe(answers),
+						submissionTimestamp,
+						formType: 'regular',
+						pageUrl: window.location.href
+					});
+				} catch (error) {
+					console.error('Failed to add to offline submission queue:', error);
+				}
 
 				console.log('Cached for offline submission');
 				addToast({

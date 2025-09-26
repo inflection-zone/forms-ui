@@ -8,6 +8,9 @@
 	import { invalidate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { IndexedDB } from '$lib/utils/indexedDB';
+	import { offlineSubmissionQueue } from '$lib/utils/offline-submission-queue';
+	import { offlineSyncManager } from '$lib/utils/offline-sync-manager';
+	import { legacyOfflineSyncManager } from '$lib/utils/legacy-offline-sync';
 	import { createSchema, questionResponseModels } from './apiFunctions';
 
 	const id = page.params.id;
@@ -33,8 +36,8 @@
 	const templateId = atob(encodedTemplateId);
 
 	let storage = new IndexedDbStorageManager('templates', 'template_list');
-	const STORAGE_KEY = `Submission`;
-	const SESSION_KEY = `sessionId`;
+	const STORAGE_KEY = `Submission_${id}`;
+	const SESSION_KEY = `sessionId_${id}`;
 	const db = new IndexedDB<{ id: string; payload: any }>('form-submissions', 'unsaved_answers');
 
 	onMount(() => {
@@ -209,16 +212,32 @@
 			const submissionTimestamp = new Date().toISOString();
 
 			if (!navigator.onLine) {
+				// Store in the existing IndexedDB for backward compatibility
 				await db.add({
 					id: STORAGE_KEY,
 					payload: {
 						intentToSubmit: true,
 						Token: id, // Use the original URL parameter instead of templateId
 						FormData: structuredCloneSafe(answers),
-						submissionTimestamp
+						submissionTimestamp,
+						FormTemplateId: templateId
 					}
 				});
 				await db.add({ id: SESSION_KEY, payload: { sessionId: code } });
+
+				// Also store in the new offline submission queue
+				try {
+					await offlineSubmissionQueue.addSubmission({
+						formId: id,
+						formName: template?.name || 'Offline Form Submission',
+						submissionData: structuredCloneSafe(answers),
+						submissionTimestamp,
+						formType: 'offline',
+						pageUrl: window.location.href
+					});
+				} catch (error) {
+					console.error('Failed to add to offline submission queue:', error);
+				}
 
 				console.log('Cached for offline submission');
 				addToast({
@@ -296,111 +315,26 @@
 			});
 
 			const syncOfflineData = async () => {
-				const cachedData = await db.getAll();
-				const cachedSubmit = cachedData.find((item) => item.id === `${STORAGE_KEY}`)?.payload;
-
-				if (cachedSubmit?.intentToSubmit) {
-					console.log('Back online: auto-submitting cached submission...');
-					
-					const formData = cachedSubmit.FormData;
-					answers = formData;
-
-					// Ensure templateInfo is loaded before proceeding
-					if (!templateInfo || !Array.isArray(templateInfo) || templateInfo.length === 0) {
-						console.log('Template not loaded yet, waiting...');
-						// Wait a bit and try again
-						setTimeout(() => {
-							syncOfflineData();
-						}, 1000);
-						return;
-					}
-
-					// First create a submission for offline forms
-					let submissionId = null;
-					let encryptedKey = null;
-					try {
-						const createSubmissionRes = await fetch('/api/server/submission', {
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({
-								FormTemplateId: templateId
-							})
-						});
-						
-						const createSubmissionData = await createSubmissionRes.json();
-						console.log('Create submission response:', createSubmissionData);
-						
-						if (createSubmissionData.Status === 'success' && createSubmissionData.Data?.id) {
-							submissionId = createSubmissionData.Data.id;
-							encryptedKey = createSubmissionData.Data.Encrypted;
-							console.log('Created submission ID:', submissionId);
-							console.log('Created encrypted key:', encryptedKey);
-						} else {
-							throw new Error('Failed to create submission');
-						}
-					} catch (err) {
-						console.error('Error creating submission:', err);
-						addToast({
-							message: 'Failed to create submission. Please try again.',
-							type: 'error',
-							timeout: 3000
-						});
-						return;
-					}
-
-					// Now save the question responses with the proper submission ID
-					const saveSuccess = await handleSave({ preventDefault: () => {} }, false, submissionId, encryptedKey);
-
-					if (saveSuccess) {
-						try {
-							console.log('Submitting form with encrypted key:', encryptedKey);
-							console.log('Submit request body:', JSON.stringify({
-								submissionKey: encryptedKey,
-								FormData: formData
-							}, null, 2));
-
-							const res = await fetch('/api/server/submit', {
-								method: 'POST',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify({
-									submissionKey: encryptedKey, // Use the encrypted key, not submission ID
-									FormData: formData
-								})
-							});
-
-							console.log('Submit response status:', res.status);
-							const submissionData = await res.json();
-							console.log('Submit response data:', submissionData);
-							toastMessage(submissionData);
-
-							if (!submissionData?.message) {
-								addToast({
-									message: 'Submission successful after reconnecting.',
-									type: 'success',
-									timeout: 3000
-								});
-								await db.delete(STORAGE_KEY);
-								console.log('IndexedDB cleared after sync.');
-							}
-						} catch (err) {
-							console.error('Network lost during sync:', err);
-							await db.add({
-								id: STORAGE_KEY,
-								payload: {
-									intentToSubmit: true,
-									Token: id, // Use the original URL parameter instead of templateId
-									FormData: formData
-								}
-							});
-							addToast({
-								message: 'Network lost again during sync. Unsynced data retained.',
-								type: 'error',
-								timeout: 4000
-							});
-						}
-					}
-				} else {
-					console.log('Back online: no submission intent found.');
+				// Use the new sync manager to handle all pending submissions
+				await offlineSyncManager.syncAllPendingSubmissions();
+				
+				// Use the legacy sync manager to handle all legacy submissions
+				const legacyResult = await legacyOfflineSyncManager.syncAllPendingSubmissions();
+				
+				if (legacyResult.success > 0) {
+					addToast({
+						message: `Successfully synced ${legacyResult.success} legacy submissions.`,
+						type: 'success',
+						timeout: 3000
+					});
+				}
+				
+				if (legacyResult.failed > 0) {
+					addToast({
+						message: `Failed to sync ${legacyResult.failed} legacy submissions.`,
+						type: 'error',
+						timeout: 3000
+					});
 				}
 
 				invalidate('app:allNodes');

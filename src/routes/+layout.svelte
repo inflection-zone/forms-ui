@@ -7,6 +7,7 @@
 	import { page } from '$app/state';
 	import { getFlash } from 'sveltekit-flash-message';
 	import ErrorBoundary from '$lib/components/common/ErrorBoundary.svelte';
+	import '$lib/utils/offline-submission-console';
 
 	///////////////////////////////////////////////////////////////////////////
 
