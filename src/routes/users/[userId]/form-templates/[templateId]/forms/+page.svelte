@@ -99,6 +99,10 @@
 						Description: dropData.description,
 						IsRequired: dropData.isRequired || false,
 						Hint: dropData.description,
+						// Add identifier for Field Library fields
+						IsFieldLibraryField: true,
+						FieldLibraryId: dropData.fieldId,
+						FieldLibraryType: dropData.fieldType,
 						// Map configuration options to form field properties
 						...(dropData.configurationOptions && {
 							Options: dropData.configurationOptions.find(opt => opt.key === 'options')?.defaultValue || [],
@@ -160,6 +164,10 @@
 						Description: dropData.description,
 						IsRequired: dropData.isRequired || false,
 						Hint: dropData.description,
+						// Add identifier for Field Library fields
+						IsFieldLibraryField: true,
+						FieldLibraryId: dropData.fieldId,
+						FieldLibraryType: dropData.fieldType,
 						// Map configuration options to form field properties
 						...(dropData.configurationOptions && {
 							Options: dropData.configurationOptions.find(opt => opt.key === 'options')?.defaultValue || [],

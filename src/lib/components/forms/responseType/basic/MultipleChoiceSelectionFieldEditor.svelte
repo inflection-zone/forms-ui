@@ -129,18 +129,19 @@
 		</div>
 		<p class="error">{errors?.IsRequired}</p>
 
-		<div class="my-2 flex flex-col">
-			<Label>Options<span class="text-red-600">*</span></Label>
-			<Button
-				type="button"
-				onclick={addOption}
-				class="my-4 w-fit"
-				disabled={questionCard.ResponseType === 'Boolean' && options.length >= 2}
-			>
-				Add Option
-			</Button>
+		{#if !questionCard.IsFieldLibraryField}
+			<div class="my-2 flex flex-col">
+				<Label>Options<span class="text-red-600">*</span></Label>
+				<Button
+					type="button"
+					onclick={addOption}
+					class="my-4 w-fit"
+					disabled={questionCard.ResponseType === 'Boolean' && options.length >= 2}
+				>
+					Add Option
+				</Button>
 
-			{#each options as option, index}
+				{#each options as option, index}
 				<div class="mb-2 flex items-center">
 					<Input
 						type="number"
@@ -165,8 +166,16 @@
 				</div>
 			{/each}
 
-			<input type="hidden" name="options" value={JSON.stringify(options)} />
-		</div>
+				<input type="hidden" name="options" value={JSON.stringify(options)} />
+			</div>
+		{:else}
+			<div class="my-2 flex flex-col">
+				<Label>Options (Pre-configured from Field Library)</Label>
+				<div class="mt-2 rounded-md bg-gray-50 p-3 text-sm text-gray-600">
+					This field uses pre-configured options from the Field Library. Options cannot be modified here.
+				</div>
+			</div>
+		{/if}
 
 		<div class="relative my-2 hidden grid-cols-12 items-center gap-4">
 			<Label class="col-span-11">Response Type</Label>

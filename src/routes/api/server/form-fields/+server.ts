@@ -29,7 +29,11 @@ export const POST = async (event: RequestEvent) => {
                 RangeMin: data.RangeMin,
                 RangeMax: data.RangeMax,
                 DefaultExpectedUnit: data.DefaultExpectedUnit,
-                PageBreakAfter: data.PageBreakAfter
+                PageBreakAfter: data.PageBreakAfter,
+                // Add Field Library identifiers
+                IsFieldLibraryField: data.IsFieldLibraryField,
+                FieldLibraryId: data.FieldLibraryId,
+                FieldLibraryType: data.FieldLibraryType
             };
             console.log('Using Field Library configuration:', model);
         } else {
