@@ -2,18 +2,11 @@
 	import Icon from '@iconify/svelte';
 	import { invalidate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Button, buttonVariants } from '../ui/button';
 	import { errorMessage, successMessage } from '../toast/message.utils';
 	import { toastMessage } from '../toast/toast.store';
-	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
-	import { Input } from '$lib/components/ui/input';
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { enhance } from '$app/forms';
 	import TemplateForm from './TemplateForm.svelte';
 	import { assessmentSchema } from './assessment-schema';
-	import * as Popover from '$lib/components/ui/popover/index.js';
-	import Label from '../ui/label/label.svelte';
-	import * as Select from '$lib/components/ui/select/index.js';
 	import { IndexedDbStorageManager } from '$lib/utils/indexdb.store.manager';
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -39,6 +32,13 @@
 	let isOpen = $state(false);
 	let copied = $state(false);
 	let activeMenu = $state(null);
+	
+	// Modal states for native implementations
+	let showEditModal = $state(false);
+	let showLinkModal = $state(false);
+	let showDeleteModal = $state(false);
+	let currentTemplateId = $state('');
+	let currentTemplateData = $state(null);
 
 	// Format date to readable format
 	function formatDate(dateString: string): string {
@@ -254,20 +254,68 @@
 
 		if (Object.keys(errors).length === 0 || result?.success) {
 			handleTemplateUpdate(model);
-			isOpen = false;
+			closeAllModals();
 		}
 	}
 
 	function toggleMenu(id) {
 		activeMenu = activeMenu === id ? null : id;
 	}
+
+	// Helper functions for modal operations
+	function openEditModal(templateData) {
+		currentTemplateData = templateData;
+		showEditModal = true;
+		activeMenu = null;
+	}
+
+	function openLinkModal(templateId: string) {
+		currentTemplateId = templateId;
+		showLinkModal = true;
+		activeMenu = null;
+	}
+
+	function openDeleteModal(templateId: string) {
+		currentTemplateId = templateId;
+		showDeleteModal = true;
+		activeMenu = null;
+	}
+
+	function closeAllModals() {
+		showEditModal = false;
+		showLinkModal = false;
+		showDeleteModal = false;
+		currentTemplateId = '';
+		currentTemplateData = null;
+		activeMenu = null;
+	}
+
+	// Button variant classes
+	function getButtonClasses(variant: 'default' | 'ghost' | 'outline' | 'destructive' = 'default', size: 'sm' | 'md' | 'lg' = 'md') {
+		const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+		
+		const variants = {
+			default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+			ghost: 'hover:bg-accent hover:text-accent-foreground',
+			outline: 'border border-input hover:bg-accent hover:text-accent-foreground',
+			destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+		};
+
+		const sizes = {
+			sm: 'h-9 px-3 text-sm',
+			md: 'h-10 py-2 px-4',
+			lg: 'h-11 px-8'
+		};
+
+		return `${baseClasses} ${variants[variant]} ${sizes[size]}`;
+	}
 </script>
 
 <div class="my-4 flex items-center justify-between">
-	<Input
+	<input
 		type="text"
 		placeholder="Search by title or type"
-		class="w-full max-w-sm"
+		class="w-full max-w-sm flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 		bind:value={searchQuery}
 	/>
 </div>
@@ -277,14 +325,20 @@
 			<tr class="bg-secondary">
 				<th class="w-12 p-3">Sr No</th>
 				<th class="w-44 py-3 text-start">
-					<Button variant="ghost" class=" text-md font-bold" onclick={() => sortTable('Title')}>
+					<button 
+						class="{getButtonClasses('ghost')} text-md font-bold" 
+						onclick={() => sortTable('Title')}
+					>
 						Title {isSortingTitle ? (sortOrder === 'ascending' ? '▲' : '▼') : ''}
-					</Button>
+					</button>
 				</th>
 				<th class=" w-32 py-3 text-start">
-					<Button variant="ghost" class="text-md font-bold" onclick={() => sortTable('Type')}>
+					<button 
+						class="{getButtonClasses('ghost')} text-md font-bold" 
+						onclick={() => sortTable('Type')}
+					>
 						Type {isSortingType ? (sortOrder === 'ascending' ? '▲' : '▼') : ''}
-					</Button>
+					</button>
 				</th>
 				<!-- <th class="p-4 text-center">Description</th>
 				<th class="p-4 text-center">Tenant Code</th> -->
@@ -314,125 +368,54 @@
 						<td class="px-3 py-1 text-start text-sm">{formatDate(row.CreatedAt)}</td>
 						<td class="text-center text-sm">{row.CurrentVersion || '-'}</td>
 						<td class=" text-center text-sm">
-							<Popover.Root>
-								<Popover.Trigger>
-									<Button
-										variant="ghost"
-										onclick={() => toggleMenu(row.id)}
-										class="rotate-90 items-center rounded-md p-2 "
-									>
-										⠇
-									</Button>
-								</Popover.Trigger>
+							<div class="relative">
+								<button
+									class="{getButtonClasses('ghost', 'sm')} rotate-90 items-center rounded-md p-2"
+									onclick={() => toggleMenu(row.id)}
+								>
+									⠇
+								</button>
 
-								<Popover.Content class=" !flex !flex-col !items-start" sideOffset={-10}>
-									{#if activeMenu === row.id}
-										<Dialog.Root bind:open={isOpen}>
-											<Dialog.Trigger class="{buttonVariants({ variant: 'ghost' })} w-36 justify-start" onclick={() => (isOpen = true)}>
-												<Icon icon="material-symbols:edit-outline" width="24" height="24" />
-												<span>Edit</span>
-											</Dialog.Trigger>
-											<Dialog.Content
-												class=" scrollbar-hide max-h-[90%] max-w-[95%] overflow-y-auto rounded-md md:max-w-[85%] lg:max-w-[45%] "
-											>
-												<Dialog.Header>
-													<Dialog.Title>Add New</Dialog.Title>
-													<Dialog.Description>
-														Make changes to your form template here. Click save when you're done.
-													</Dialog.Description>
-												</Dialog.Header>
-												<form method="post" use:enhance>
-													<TemplateForm templateData={row} bind:errors />
-													<Dialog.Footer>
-														<Button class="my-2" onclick={handleSubmit} type="submit"
-															>Save changes</Button
-														>
-													</Dialog.Footer>
-												</form>
-											</Dialog.Content>
-										</Dialog.Root>
-										<div>
-											<Button
-												href="/users/{userId}/form-templates/{row.id}/preview"
-												variant="ghost"
-												class="w-36 justify-start"
-												><Icon icon="icon-park-outline:preview-open" width="24" height="24" />
-												<span>Preview</span>
-											</Button>
-										</div>
+								{#if activeMenu === row.id}
+									<div class="absolute right-0 top-8 z-50 min-w-[144px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+										<button
+											class="{getButtonClasses('ghost', 'sm')} w-full justify-start"
+											onclick={() => openEditModal(row)}
+										>
+											<Icon icon="material-symbols:edit-outline" width="24" height="24" />
+											<span>Edit</span>
+										</button>
+										
+										<a
+											href="/users/{userId}/form-templates/{row.id}/preview"
+											class="{getButtonClasses('ghost', 'sm')} w-full justify-start"
+										>
+											<Icon icon="icon-park-outline:preview-open" width="24" height="24" />
+											<span>Preview</span>
+										</a>
 
-										<AlertDialog.Root>
-											<AlertDialog.Trigger class="{buttonVariants({ variant: 'ghost' })} w-36 justify-start">
-												<Icon icon="material-symbols:link" width="20" height="20" />
-												<span>Generate Link</span>
-											</AlertDialog.Trigger>
-											<AlertDialog.Content>
-												<AlertDialog.Header>
-													<AlertDialog.Title>This is the link for the template</AlertDialog.Title>
-													<AlertDialog.Description>
-														Generate link to copy and share form template for data collection.
-													</AlertDialog.Description>
-												</AlertDialog.Header>
-												<div class=" flex w-full items-center">
-													<div class="relative w-full md:w-auto">
-														<Input
-															bind:value={link}
-															type="text"
-															class="w-76 overflow-x-auto whitespace-nowrap rounded-lg border px-4 py-2 pr-10 md:w-96 xl:w-96"
-															readonly
-														/>
-														<Icon
-															icon={copied
-																? 'material-symbols:check-circle-rounded'
-																: 'ion:copy-outline'}
-															width="24"
-															height="24"
-															class="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer p-1"
-															onclick={copyToClipboard}
-														/>
-													</div>
-													<Button class="mx-1" onclick={() => createLink(row.id)}>Generate</Button>
-												</div>
+										<button
+											class="{getButtonClasses('ghost', 'sm')} w-full justify-start"
+											onclick={() => openLinkModal(row.id)}
+										>
+											<Icon icon="material-symbols:link" width="20" height="20" />
+											<span>Generate Link</span>
+										</button>
 
-												<AlertDialog.Footer>
-													<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-													<AlertDialog.Action onclick={openLink}>Open</AlertDialog.Action>
-												</AlertDialog.Footer>
-											</AlertDialog.Content>
-										</AlertDialog.Root>
-
-										<AlertDialog.Root bind:open>
-											<AlertDialog.Trigger class="{buttonVariants({ variant: 'ghost' })} w-36 justify-start">
-												<Icon
-													icon="material-symbols:delete-outline"
-													class="text-red-500"
-													width="24"
-													height="24"
-												/>
-												<span>Delete</span>
-											</AlertDialog.Trigger>
-											<AlertDialog.Content>
-												<AlertDialog.Header>
-													<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
-													<AlertDialog.Description>
-														This action cannot be undone. Deleting will remove the template and all
-														associated data.
-													</AlertDialog.Description>
-												</AlertDialog.Header>
-												<AlertDialog.Footer>
-													<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-													<AlertDialog.Action
-														class="w-fit"
-														onclick={() => handleDeleteAssessment(row.id)}
-													>
-														Delete
-													</AlertDialog.Action>
-												</AlertDialog.Footer>
-											</AlertDialog.Content>
-										</AlertDialog.Root>
-									{/if}
-								</Popover.Content>
-							</Popover.Root>
+										<button
+											class="{getButtonClasses('ghost', 'sm')} w-full justify-start text-red-500"
+											onclick={() => openDeleteModal(row.id)}
+										>
+											<Icon
+												icon="material-symbols:delete-outline"
+												width="24"
+												height="24"
+											/>
+											<span>Delete</span>
+										</button>
+									</div>
+								{/if}
+							</div>
 						</td>
 					</tr>
 				{/each}
@@ -443,7 +426,7 @@
 <div class="my-6 flex flex-col items-center justify-between gap-6 sm:flex-row">
 	<!-- Items Per Page Dropdown -->
 	<div class="flex flex-col items-start text-sm text-gray-500 dark:text-gray-400">
-		<Label for="itemsPerPage" class="mb-2">Items per page</Label>
+		<label for="itemsPerPage" class="mb-2 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Items per page</label>
 		<div class="relative">
 			<select
 				id="itemsPerPage"
@@ -471,14 +454,128 @@
 
 	<!-- Pagination Buttons -->
 	<div class="flex items-center space-x-2">
-		<Button onclick={() => changePage(-1)} disabled={currentPage === 1}>
+		<button 
+			class={getButtonClasses('default', 'sm')} 
+			onclick={() => changePage(-1)} 
+			disabled={currentPage === 1}
+		>
 			<Icon icon="material-symbols:chevron-left-rounded" width="20" height="20" />
-		</Button>
-		<Button
+		</button>
+		<button
+			class={getButtonClasses('default', 'sm')}
 			onclick={() => changePage(1)}
 			disabled={currentPage === Math.ceil(filteredTemplates.length / itemsPerPage)}
 		>
 			<Icon icon="material-symbols:chevron-right-rounded" width="20" height="20" />
-		</Button>
+		</button>
 	</div>
 </div>
+
+<!-- Edit Modal -->
+{#if showEditModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.target === e.currentTarget && closeAllModals()} onkeydown={(e) => e.key === 'Escape' && closeAllModals()}>
+		<div class="scrollbar-hide max-h-[90%] max-w-[95%] overflow-y-auto rounded-md bg-background p-6 shadow-lg md:max-w-[85%] lg:max-w-[45%]" role="document">
+			<div class="mb-4">
+				<h2 class="text-lg font-semibold">Edit Template</h2>
+				<p class="text-sm text-muted-foreground">Make changes to your form template here. Click save when you're done.</p>
+			</div>
+			<form method="post" use:enhance>
+				<TemplateForm templateData={currentTemplateData} bind:errors />
+				<div class="mt-4 flex justify-end gap-2">
+					<button 
+						type="button"
+						class="{getButtonClasses('outline')}"
+						onclick={closeAllModals}
+					>
+						Cancel
+					</button>
+					<button 
+						class="{getButtonClasses('default')}" 
+						onclick={handleSubmit} 
+						type="submit"
+					>
+						Save changes
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+<!-- Link Generation Modal -->
+{#if showLinkModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.target === e.currentTarget && closeAllModals()} onkeydown={(e) => e.key === 'Escape' && closeAllModals()}>
+		<div class="max-w-md rounded-md bg-background p-6 shadow-lg" role="document">
+			<div class="mb-4">
+				<h2 class="text-lg font-semibold">Template Link</h2>
+				<p class="text-sm text-muted-foreground">Generate link to copy and share form template for data collection.</p>
+			</div>
+			<div class="mb-4 flex w-full items-center gap-2">
+				<div class="relative flex-1">
+					<input
+						bind:value={link}
+						type="text"
+						class="w-full overflow-x-auto whitespace-nowrap rounded-lg border border-input bg-background px-4 py-2 pr-10 text-sm"
+						readonly
+					/>
+					<Icon
+						icon={copied ? 'material-symbols:check-circle-rounded' : 'ion:copy-outline'}
+						width="24"
+						height="24"
+						class="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer p-1"
+						onclick={copyToClipboard}
+					/>
+				</div>
+				<button 
+					class={getButtonClasses('default')} 
+					onclick={() => createLink(currentTemplateId)}
+				>
+					Generate
+				</button>
+			</div>
+			<div class="flex justify-end gap-2">
+				<button 
+					class="{getButtonClasses('outline')}"
+					onclick={closeAllModals}
+				>
+					Cancel
+				</button>
+				<button 
+					class="{getButtonClasses('default')}"
+					onclick={openLink}
+				>
+					Open
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Delete Confirmation Modal -->
+{#if showDeleteModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.target === e.currentTarget && closeAllModals()} onkeydown={(e) => e.key === 'Escape' && closeAllModals()}>
+		<div class="max-w-md rounded-md bg-background p-6 shadow-lg" role="document">
+			<div class="mb-4">
+				<h2 class="text-lg font-semibold">Are you absolutely sure?</h2>
+				<p class="text-sm text-muted-foreground">This action cannot be undone. Deleting will remove the template and all associated data.</p>
+			</div>
+			<div class="flex justify-end gap-2">
+				<button 
+					class="{getButtonClasses('outline')}"
+					onclick={closeAllModals}
+				>
+					Cancel
+				</button>
+				<button 
+					class="{getButtonClasses('destructive')}"
+					onclick={() => {
+						handleDeleteAssessment(currentTemplateId);
+						closeAllModals();
+					}}
+				>
+					Delete
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
