@@ -91,37 +91,29 @@
 				if (isFieldLibraryField) {
 					// Use Field Library configuration
 					model = {
-						parentFormTemplateId,
-						parentSectionId: sectionId,
-						responseType: dropData.value,
+						ParentTemplateId: parentFormTemplateId,
+						ParentSectionId: sectionId,
+						ResponseType: dropData.value,
 						// Include Field Library specific configuration
-						title: dropData.name,
-						description: dropData.description,
-						isRequired: dropData.isRequired || false,
-						hint: dropData.description,
+						Title: dropData.name,
+						Description: dropData.description,
+						IsRequired: dropData.isRequired || false,
+						Hint: dropData.description,
 						// Map configuration options to form field properties
 						...(dropData.configurationOptions && {
-							options: dropData.configurationOptions.options || [],
-							rangeMin: dropData.configurationOptions.rangeMin,
-							rangeMax: dropData.configurationOptions.rangeMax,
-							defaultExpectedUnit: dropData.configurationOptions.defaultExpectedUnit
-						}),
-						// Map validation options
-						...(dropData.validationOptions && {
-							validationRules: dropData.validationOptions
-						}),
-						// Map default value
-						...(dropData.defaultValue && {
-							defaultValue: dropData.defaultValue
+							Options: dropData.configurationOptions.find(opt => opt.key === 'options')?.defaultValue || [],
+							RangeMin: dropData.configurationOptions.find(opt => opt.key === 'min')?.defaultValue,
+							RangeMax: dropData.configurationOptions.find(opt => opt.key === 'max')?.defaultValue,
+							DefaultExpectedUnit: dropData.configurationOptions.find(opt => opt.key === 'unit')?.defaultValue
 						})
 					};
 					console.log('Creating Field Library field with configuration:', model);
 				} else {
 					// Use basic configuration for Basic/HealthCare fields
 					model = {
-						parentFormTemplateId,
-						parentSectionId: sectionId,
-						responseType: dropData.value
+						ParentTemplateId: parentFormTemplateId,
+						ParentSectionId: sectionId,
+						ResponseType: dropData.value
 					};
 					console.log('Creating basic field:', model);
 				}
@@ -160,37 +152,29 @@
 				if (isFieldLibraryField) {
 					// Use Field Library configuration
 					model = {
-						parentFormTemplateId,
-						parentSectionId: subsectionId,
-						responseType: dropData.value,
+						ParentTemplateId: parentFormTemplateId,
+						ParentSectionId: subsectionId,
+						ResponseType: dropData.value,
 						// Include Field Library specific configuration
-						title: dropData.name,
-						description: dropData.description,
-						isRequired: dropData.isRequired || false,
-						hint: dropData.description,
+						Title: dropData.name,
+						Description: dropData.description,
+						IsRequired: dropData.isRequired || false,
+						Hint: dropData.description,
 						// Map configuration options to form field properties
 						...(dropData.configurationOptions && {
-							options: dropData.configurationOptions.options || [],
-							rangeMin: dropData.configurationOptions.rangeMin,
-							rangeMax: dropData.configurationOptions.rangeMax,
-							defaultExpectedUnit: dropData.configurationOptions.defaultExpectedUnit
-						}),
-						// Map validation options
-						...(dropData.validationOptions && {
-							validationRules: dropData.validationOptions
-						}),
-						// Map default value
-						...(dropData.defaultValue && {
-							defaultValue: dropData.defaultValue
+							Options: dropData.configurationOptions.find(opt => opt.key === 'options')?.defaultValue || [],
+							RangeMin: dropData.configurationOptions.find(opt => opt.key === 'min')?.defaultValue,
+							RangeMax: dropData.configurationOptions.find(opt => opt.key === 'max')?.defaultValue,
+							DefaultExpectedUnit: dropData.configurationOptions.find(opt => opt.key === 'unit')?.defaultValue
 						})
 					};
 					console.log('Creating Field Library field in subsection with configuration:', model);
 				} else {
 					// Use basic configuration for Basic/HealthCare fields
 					model = {
-						parentFormTemplateId,
-						parentSectionId: subsectionId,
-						responseType: dropData.value
+						ParentTemplateId: parentFormTemplateId,
+						ParentSectionId: subsectionId,
+						ResponseType: dropData.value
 					};
 					console.log('Creating basic field in subsection:', model);
 				}

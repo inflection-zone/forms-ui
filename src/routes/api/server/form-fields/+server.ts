@@ -11,26 +11,51 @@ export const POST = async (event: RequestEvent) => {
 
         console.log('Data from api/server/form-fields POST:', data);
 
-        const model = {
-            ParentTemplateId: data.parentFormTemplateId,
-            ParentSectionId: data.parentSectionId,
-            ResponseType: data.responseType
-        }
+        // Check if this is a Field Library field with rich configuration
+        const isFieldLibraryField = data.ParentTemplateId && data.ParentSectionId && data.ResponseType;
+        
+        let model;
+        if (isFieldLibraryField) {
+            // Use Field Library configuration - data is already in correct format
+            model = {
+                ParentTemplateId: data.ParentTemplateId,
+                ParentSectionId: data.ParentSectionId,
+                ResponseType: data.ResponseType,
+                Title: data.Title,
+                Description: data.Description,
+                IsRequired: data.IsRequired,
+                Hint: data.Hint,
+                Options: data.Options,
+                RangeMin: data.RangeMin,
+                RangeMax: data.RangeMax,
+                DefaultExpectedUnit: data.DefaultExpectedUnit,
+                PageBreakAfter: data.PageBreakAfter
+            };
+            console.log('Using Field Library configuration:', model);
+        } else {
+            // Use basic configuration for Basic/HealthCare fields
+            model = {
+                ParentTemplateId: data.parentFormTemplateId,
+                ParentSectionId: data.parentSectionId,
+                ResponseType: data.responseType
+            };
 
-        if (data.responseType === 'Height') {
-            model['Title'] = 'Height (Centimeter)?';
-        }
-        if (data.responseType === 'Weight') {
-            model['Title'] = 'Body Weight (Kilograms)?';
-        }
-        if (data.responseType === 'Temperature') {
-            model['Title'] = 'Body Temperature (Fahrenheit)?';
-        }
-        if (data.responseType === 'PulseRate') {
-            model['Title'] = 'Heart Pulse Rate (in beats per minute)?';
-        }
-        if (data.responseType === 'BloodPressure') {
-            model['Title'] = 'Blood Pressure (in mmHg)?';
+            if (data.responseType === 'Height') {
+                model['Title'] = 'Height (Centimeter)?';
+            }
+            if (data.responseType === 'Weight') {
+                model['Title'] = 'Body Weight (Kilograms)?';
+            }
+            if (data.responseType === 'Temperature') {
+                model['Title'] = 'Body Temperature (Fahrenheit)?';
+            }
+            if (data.responseType === 'PulseRate') {
+                model['Title'] = 'Heart Pulse Rate (in beats per minute)?';
+            }
+            if (data.responseType === 'BloodPressure') {
+                model['Title'] = 'Blood Pressure (in mmHg)?';
+            }
+            console.log('Using basic configuration:', model);
         }
         const response = await createQuestion(model);
 
