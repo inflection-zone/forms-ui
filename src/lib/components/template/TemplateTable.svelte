@@ -6,6 +6,7 @@
 	import { toastMessage } from '../toast/toast.store';
 	import { enhance } from '$app/forms';
 	import TemplateForm from './TemplateForm.svelte';
+	import EmbedModal from './EmbedModal.svelte';
 	import { assessmentSchema } from './assessment-schema';
 	import { IndexedDbStorageManager } from '$lib/utils/indexdb.store.manager';
 
@@ -41,7 +42,6 @@
 	
 	// Tooltip state
 	let hoveredButton = $state(null);
-	let embedCode = $state('');
 
 	// Format date to readable format
 	function formatDate(dateString: string): string {
@@ -274,7 +274,6 @@
 
 	function openEmbedModal(templateId: string) {
 		currentTemplateId = templateId;
-		generateEmbedCode(templateId);
 		showEmbedModal = true;
 	}
 
@@ -290,23 +289,6 @@
 		showEmbedModal = false;
 		currentTemplateId = '';
 		currentTemplateData = null;
-		embedCode = '';
-	}
-
-	function generateEmbedCode(templateId: string) {
-		const baseUrl = window.location.origin;
-		embedCode = `<iframe src="${baseUrl}/embed/form/${templateId}" width="100%" height="600" frameborder="0" style="border: none; border-radius: 8px;"></iframe>`;
-	}
-
-	async function copyEmbedCode() {
-		try {
-			await navigator.clipboard.writeText(embedCode);
-			copied = true;
-			setTimeout(() => (copied = false), 2000);
-			successMessage('Embed code copied');
-		} catch (error) {
-			errorMessage('Failed to copy embed code');
-		}
 	}
 
 	// Button variant classes
@@ -608,57 +590,12 @@
 	</div>
 {/if}
 
-<!-- Embed Modal -->
-{#if showEmbedModal}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.target === e.currentTarget && closeAllModals()} onkeydown={(e) => e.key === 'Escape' && closeAllModals()}>
-		<div class="max-w-2xl rounded-md bg-background p-6 shadow-lg" role="document">
-			<div class="mb-4">
-				<h2 class="text-lg font-semibold">Embed Form</h2>
-				<p class="text-sm text-muted-foreground">Copy this embed code to add the form to your website.</p>
-			</div>
-			<div class="mb-4">
-				<label for="embed-code" class="block text-sm font-medium mb-2">Embed Code:</label>
-				<div class="relative">
-					<textarea
-						id="embed-code"
-						bind:value={embedCode}
-						class="w-full h-24 rounded-lg border border-input bg-background px-4 py-2 text-sm resize-none"
-						readonly
-					></textarea>
-					<Icon
-						icon={copied ? 'material-symbols:check-circle-rounded' : 'ion:copy-outline'}
-						width="24"
-						height="24"
-						class="absolute right-2 top-2 cursor-pointer p-1"
-						onclick={copyEmbedCode}
-					/>
-				</div>
-			</div>
-			<div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-				<h3 class="text-sm font-medium mb-2">Preview:</h3>
-				<div class="text-xs text-muted-foreground space-y-1">
-					<p>• The form will be embedded as an iframe</p>
-					<p>• Responsive design will adapt to container width</p>
-					<p>• Height is set to 600px (adjustable in the code)</p>
-				</div>
-			</div>
-			<div class="flex justify-end gap-2">
-				<button 
-					class="{getButtonClasses('outline')}"
-					onclick={closeAllModals}
-				>
-					Cancel
-				</button>
-				<button 
-					class="{getButtonClasses('default')}"
-					onclick={copyEmbedCode}
-				>
-					Copy Code
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+<!-- Embed Modal Component -->
+<EmbedModal 
+	bind:showModal={showEmbedModal} 
+	templateId={currentTemplateId}
+	onClose={closeAllModals}
+/>
 
 <!-- Delete Confirmation Modal -->
 {#if showDeleteModal}
