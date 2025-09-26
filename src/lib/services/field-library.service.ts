@@ -255,28 +255,14 @@ export class FieldLibraryService {
      * Transform backend categories to frontend format
      */
     private transformCategories(data: any[]): FieldLibraryCategory[] {
-        const categoryMap = new Map<string, FieldLibraryCategory>();
-        
-        data.forEach((item: any) => {
-            const categoryName = item.Category || 'uncategorized';
-            
-            if (!categoryMap.has(categoryName)) {
-                categoryMap.set(categoryName, {
-                    name: categoryName,
-                    displayName: this.formatCategoryName(categoryName),
-                    description: this.getCategoryDescription(categoryName),
-                    icon: this.getCategoryIcon(categoryName),
-                    fieldCount: 0,
-                    fields: []
-                });
-            }
-            
-            const category = categoryMap.get(categoryName)!;
-            category.fields.push(this.transformField(item));
-            category.fieldCount++;
-        });
-        
-        return Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+        return data.map((category: any) => ({
+            name: category.Category,
+            displayName: this.formatCategoryName(category.Category),
+            description: this.getCategoryDescription(category.Category),
+            icon: category.Icon,
+            fieldCount: category.Count,
+            fields: category.Fields ? category.Fields.map((field: any) => this.transformField(field)) : []
+        })).sort((a, b) => a.name.localeCompare(b.name));
     }
 
     /**

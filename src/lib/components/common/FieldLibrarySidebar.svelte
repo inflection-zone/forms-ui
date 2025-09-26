@@ -40,6 +40,13 @@
 	};
 
 	let selectedTab = $state('Basic');
+	
+	// Expandable sections state
+	let basicExpanded = $state(false);
+	let healthCareExpanded = $state(false);
+	
+	// Individual Field Library category states
+	let fieldLibraryCategoryExpanded: Record<string, boolean> = $state({});
 
 	onMount(async () => {
 		await loadFieldLibraryCategories();
@@ -52,6 +59,13 @@
 		}
 	});
 
+	// Sync expandable state with typeOfQuestion prop
+	$effect(() => {
+		basicExpanded = typeOfQuestion === 'Basic';
+		healthCareExpanded = typeOfQuestion === 'HealthCare';
+		// Field Library categories are handled individually
+	});
+
 	async function loadFieldLibraryCategories() {
 		try {
 			isLoading = true;
@@ -59,8 +73,7 @@
 			fieldLibraryCategories = categories;
 			if (categories.length > 0 && !selectedCategory) {
 				selectedCategory = categories[0].name;
-				// Load fields for the first category
-				await onCategoryChange(selectedCategory);
+				// Fields are now pre-loaded with categories, no need to load them separately
 			}
 		} catch (error) {
 			console.error('Failed to load field library categories:', error);
@@ -82,14 +95,13 @@
 		selectedCategory = categoryName;
 		try {
 			isLoading = true;
-			const fields = await fieldLibraryService.getFieldsByCategory(categoryName);
-			console.log('Loaded fields for category:', categoryName, fields);
+			// Fields are now pre-loaded with categories, no need for separate API call
+			const category = fieldLibraryCategories.find(cat => cat.name === categoryName);
+			console.log('Selected category:', categoryName, category);
 			
-			// Update the category with loaded fields
-			const categoryIndex = fieldLibraryCategories.findIndex(cat => cat.name === categoryName);
-			if (categoryIndex !== -1) {
-				fieldLibraryCategories[categoryIndex].fields = fields;
-				console.log('Updated category fields:', fieldLibraryCategories[categoryIndex]);
+			if (!category || !category.fields) {
+				console.warn('Category not found or has no fields:', categoryName);
+				return;
 			}
 		} catch (error) {
 			console.error('Failed to load fields for category:', categoryName, error);
@@ -131,6 +143,41 @@
 
 	async function handleExportTemplate() {
 		console.log('Export template clicked');
+	}
+
+	// Expandable section handlers
+	function toggleBasic() {
+		basicExpanded = !basicExpanded;
+		if (basicExpanded) {
+			healthCareExpanded = false;
+			fieldLibraryExpanded = false;
+			changeTypes('Basic');
+		}
+	}
+
+	function toggleHealthCare() {
+		healthCareExpanded = !healthCareExpanded;
+		if (healthCareExpanded) {
+			basicExpanded = false;
+			fieldLibraryExpanded = false;
+			changeTypes('HealthCare');
+		}
+	}
+
+	function toggleFieldLibraryCategory(categoryName: string) {
+		fieldLibraryCategoryExpanded[categoryName] = !fieldLibraryCategoryExpanded[categoryName];
+		// Close other categories when opening one
+		if (fieldLibraryCategoryExpanded[categoryName]) {
+			basicExpanded = false;
+			healthCareExpanded = false;
+			// Close other field library categories
+			Object.keys(fieldLibraryCategoryExpanded).forEach(key => {
+				if (key !== categoryName) {
+					fieldLibraryCategoryExpanded[key] = false;
+				}
+			});
+			changeTypes('FieldLibrary');
+		}
 	}
 
 	const currentFields = $derived(() => {
@@ -205,10 +252,10 @@
 	});
 </script>
 
-<!-- Enhanced Sidebar with Field Library Integration -->
+	<!-- Enhanced Sidebar with Field Library Integration -->
 <div class="relative h-[calc(screen-2rem)] min-h-screen w-full overflow-y-hidden {isOpen ? 'block' : 'hidden'} md:block">
-	<Card.Root class="!rounded-none !border-none px-4 py-5 !shadow-none md:w-full">
-		<Card.Title class="text-md mb-3">Drag Section From Here</Card.Title>
+	<Card.Root class="!rounded-none !border-none px-4 py-5 !shadow-none md:w-full bg-gray-50 dark:bg-gray-800">
+		<Card.Title class="text-md mb-3 text-gray-700 dark:text-gray-200">Drag Section From Here</Card.Title>
 		<div
 			class="flex cursor-grab items-center justify-center"
 			use:draggable={{ ...SectionTemplate, type: 'section' }}
@@ -216,8 +263,8 @@
 			aria-label="Draggable new section template"
 		>
 			<Button
-				class="space-x-2 rounded-md border dark:border-gray-400 md:w-full"
-				variant="secondary"
+				class="space-x-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 md:w-full"
+				variant="outline"
 			>
 				<Icon
 					icon="teenyicons:section-add-outline"
@@ -232,215 +279,209 @@
 
 
 	<!-- Question Types -->
-	<Card.Root class="!rounded-none !border-none !shadow-none md:w-full md:px-2 2xl:w-full">
-		<Card.Title class="text-md px-3 flex items-center justify-between">
-			{typeOfQuestion === 'FieldLibrary' ? 'Field Library' : 'Question'}
-			{#if typeOfQuestion === 'FieldLibrary'}
-				<div class="flex gap-1">
-					<Button
-						variant="ghost"
-						size="sm"
-						onclick={() => handleImportTemplate()}
-						class="h-6 w-6 p-0"
-					>
-						<Icon icon="material-symbols:upload" class="h-4 w-4" />
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onclick={() => showExportDialog = true}
-						class="h-6 w-6 p-0"
-					>
-						<Icon icon="material-symbols:download" class="h-4 w-4" />
-					</Button>
-				</div>
-			{/if}
+	<Card.Root class="!rounded-none !border-none !shadow-none md:w-full md:px-2 2xl:w-full bg-white dark:bg-gray-900">
+		<Card.Title class="text-md px-3 py-3 flex items-center justify-between text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700">
+			<span class="font-semibold">Field Library</span>
+			<div class="flex gap-1">
+				<Button
+					variant="ghost"
+					size="sm"
+					onclick={() => handleImportTemplate()}
+					class="h-6 w-6 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+				>
+					<Icon icon="material-symbols:upload" class="h-4 w-4" />
+				</Button>
+				<Button
+					variant="ghost"
+					size="sm"
+					onclick={() => showExportDialog = true}
+					class="h-6 w-6 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+				>
+					<Icon icon="material-symbols:download" class="h-4 w-4" />
+				</Button>
+			</div>
 		</Card.Title>
-		<div class="rounded-md px-3 dark:border-gray-400">
-				<div class="flex flex-wrap justify-around py-2 px-4 rounded-tl-md rounded-tr-md border border-b-0">
-					<label class="flex cursor-pointer items-center">
-						<input
-							type="radio"
-							name="layoutType"
-							value="Basic"
-							bind:group={selectedTab}
-							checked={typeOfQuestion === 'Basic'}
-							onchange={changeTypes}
-							class="sr-only"
-						/>
-						<span class="relative mr-3 flex h-4 w-4 items-center justify-center rounded-full border border-primary">
-							<span
-								class="absolute h-2 w-2 rounded-full bg-primary {typeOfQuestion === 'Basic'
-									? 'opacity-100'
-									: 'opacity-0'} transition-opacity duration-200 ease-in-out"
-							></span>
-						</span>
-						Basic
-					</label>
-					<label class="mx-2 flex cursor-pointer items-center">
-						<input
-							type="radio"
-							name="layoutType"
-							value="HealthCare"
-							bind:group={selectedTab}
-							checked={typeOfQuestion === 'HealthCare'}
-							onchange={changeTypes}
-							class="sr-only"
-						/>
-						<span class="relative mr-3 flex h-4 w-4 items-center justify-center rounded-full border border-primary">
-							<span
-								class="absolute h-2 w-2 rounded-full bg-primary {typeOfQuestion === 'HealthCare'
-									? 'opacity-100'
-									: 'opacity-0'} transition-opacity duration-200 ease-in-out"
-							></span>
-						</span>
-						Health Care
-					</label>
-					<label class="mx-2 flex cursor-pointer items-center">
-						<input
-							type="radio"
-							name="layoutType"
-							value="FieldLibrary"
-							bind:group={selectedTab}
-							checked={typeOfQuestion === 'FieldLibrary'}
-							onchange={changeTypes}
-							class="sr-only"
-						/>
-						<span class="relative mr-3 flex h-4 w-4 items-center justify-center rounded-full border border-primary">
-							<span
-								class="absolute h-2 w-2 rounded-full bg-primary {typeOfQuestion === 'FieldLibrary'
-									? 'opacity-100'
-									: 'opacity-0'} transition-opacity duration-200 ease-in-out"
-							></span>
-						</span>
-						Field Library
-					</label>
-				</div>
-				{#if typeOfQuestion === 'FieldLibrary'}
-					<!-- Search Bar -->
-					<div class="mb-3">
-						<div class="relative">
-							<input
-								type="text"
-								placeholder="Search fields..."
-								bind:value={searchQuery}
-								oninput={onSearch}
-								class="w-full rounded-md border border-gray-300 px-3 py-2 pr-10 text-sm focus:border-primary focus:outline-none dark:border-gray-600 dark:bg-gray-800"
-							/>
-							<Icon
-								icon="material-symbols:search"
-								class="absolute right-3 top-2.5 h-4 w-4 text-gray-400"
-							/>
+		
+		<!-- Search Bar -->
+		<div class="px-3 py-3 bg-gray-50 dark:bg-gray-800">
+			<div class="relative">
+				<input
+					type="text"
+					placeholder="Search fields..."
+					bind:value={searchQuery}
+					oninput={onSearch}
+					class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 pr-10 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+				/>
+				<Icon
+					icon="material-symbols:search"
+					class="absolute right-3 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500"
+				/>
+			</div>
+		</div>
+
+
+		<div class="space-y-1 px-3 pb-3">
+			<!-- Basic Fields Section -->
+			<div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+				<button
+					class="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-gray-900"
+					onclick={toggleBasic}
+				>
+					<div class="flex items-center gap-3">
+						<Icon icon="material-symbols:edit-outline" class="h-5 w-5 text-primary" />
+						<span class="font-medium text-gray-700 dark:text-gray-200">Basic Fields</span>
+						<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">5 types</span>
+					</div>
+					<Icon 
+						icon="material-symbols:keyboard-arrow-down" 
+						class="h-5 w-5 text-gray-400 dark:text-gray-500 transition-transform {basicExpanded ? 'rotate-180' : ''}"
+					/>
+				</button>
+				{#if basicExpanded}
+					<div class="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800">
+						<div class="space-y-1">
+							{#each basicCards as card}
+								<div
+									class="w-full cursor-grab rounded-md hover:bg-white dark:hover:bg-gray-700 transition-colors"
+									use:draggable={{ ...card, type: 'card' }}
+									role="button"
+									aria-label={`Draggable card: ${card.name}`}
+								>
+									<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
+										<Icon icon={card.icon} width="20" height="20" class="text-primary" />
+										<span class="text-sm text-gray-700 dark:text-gray-200">{card.name}</span>
+									</Button>
+								</div>
+							{/each}
 						</div>
 					</div>
-
-					<!-- Category Selection -->
-					{#if !searchQuery.trim()}
-						<div class="mb-3">
-							<Select.Root type="single" bind:value={selectedCategory} onValueChange={onCategoryChange}>
-								<Select.Trigger class="w-full">
-									<Select.Value placeholder="Select category" />
-								</Select.Trigger>
-								<Select.Content>
-									{#each fieldLibraryCategories as category}
-										<Select.Item value={category.name}>
-											<div class="flex items-center gap-2">
-												<Icon icon={category.icon} class="h-4 w-4" />
-												{category.displayName} ({category.fieldCount})
-											</div>
-										</Select.Item>
-									{/each}
-								</Select.Content>
-							</Select.Root>
-						</div>
-					{/if}
 				{/if}
+			</div>
 
-				<div class="custom-scrollbar overflow-y-auto rounded-bl-md rounded-br-md border py-4">
-					{#if typeOfQuestion === 'FieldLibrary' && selectedTab === 'FieldLibrary'}
-						{#if isLoading}
-							<div class="flex items-center justify-center py-8">
-								<Icon icon="svg-spinners:ring-resize" class="h-6 w-6 text-primary" />
-								<span class="ml-2 text-sm text-gray-500">Loading...</span>
-							</div>
-						{:else if currentFields().length === 0}
-							<div class="flex flex-col items-center justify-center py-8 text-center">
-								<Icon icon="material-symbols:search-off" class="h-8 w-8 text-gray-400 mb-2" />
-								<p class="text-sm text-gray-500">
-									{searchQuery.trim() ? 'No fields found' : 'No fields available'}
-								</p>
-							</div>
-						{:else}
-							<ul class="space-y-2 px-2">
-								{#each currentFields() as card}
-									<li>
+			<!-- Health Care Fields Section -->
+			<div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+				<button
+					class="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-gray-900"
+					onclick={toggleHealthCare}
+				>
+					<div class="flex items-center gap-3">
+						<Icon icon="healthicons:medical-kit" class="h-5 w-5 text-primary" />
+						<span class="font-medium text-gray-700 dark:text-gray-200">Health Care Fields</span>
+						<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">4 types</span>
+					</div>
+					<Icon 
+						icon="material-symbols:keyboard-arrow-down" 
+						class="h-5 w-5 text-gray-400 dark:text-gray-500 transition-transform {healthCareExpanded ? 'rotate-180' : ''}"
+					/>
+				</button>
+				{#if healthCareExpanded}
+					<div class="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800">
+						<div class="space-y-1">
+							{#each healthCarePlugins as card}
+								<div
+									class="w-full cursor-grab rounded-md hover:bg-white dark:hover:bg-gray-700 transition-colors"
+									use:draggable={{ ...card, type: 'card' }}
+									role="button"
+									aria-label={`Draggable card: ${card.name}`}
+								>
+									<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
+										<Icon icon={card.icon} width="20" height="20" class="text-primary" />
+										<span class="text-sm text-gray-700 dark:text-gray-200">{card.name}</span>
+									</Button>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Individual Field Library Categories -->
+			{#each fieldLibraryCategories as category}
+				<div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+					<button
+						class="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-gray-900"
+						onclick={() => toggleFieldLibraryCategory(category.name)}
+					>
+						<div class="flex items-center gap-3">
+							<Icon icon={category.icon} class="h-5 w-5 text-primary" />
+							<span class="font-medium text-gray-700 dark:text-gray-200">{category.displayName}</span>
+							<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">{category.fieldCount} types</span>
+						</div>
+						<Icon 
+							icon="material-symbols:keyboard-arrow-down" 
+							class="h-5 w-5 text-gray-400 dark:text-gray-500 transition-transform {fieldLibraryCategoryExpanded[category.name] ? 'rotate-180' : ''}"
+						/>
+					</button>
+					{#if fieldLibraryCategoryExpanded[category.name]}
+						<div class="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800">
+							<div class="space-y-1">
+								{#if isLoading}
+									<div class="flex items-center justify-center py-8">
+										<Icon icon="svg-spinners:ring-resize" class="h-6 w-6 text-primary" />
+										<span class="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading...</span>
+									</div>
+								{:else if category.fields && category.fields.length === 0}
+									<div class="flex flex-col items-center justify-center py-8 text-center">
+										<Icon icon="material-symbols:search-off" class="h-8 w-8 text-gray-400 dark:text-gray-500 mb-2" />
+										<p class="text-sm text-gray-500 dark:text-gray-400">No fields available</p>
+									</div>
+								{:else}
+									{#each category.fields || [] as field}
 										<div
-											class="w-full cursor-grab"
-											use:draggable={{ ...card, type: 'card' }}
-											role="button"
-											aria-label={`Draggable card: ${card.name}`}
-											onclick={() => {
-												console.log('Field library card clicked:', { ...card, type: 'card' });
-												console.log('Card data for drag:', card);
+											class="w-full cursor-grab rounded-md hover:bg-white dark:hover:bg-gray-700 transition-colors"
+											use:draggable={{ 
+												id: field.id,
+												name: field.name,
+												value: field.responseType,
+												icon: field.icon || 'material-symbols:category-outline',
+												category: field.category,
+												description: field.description,
+												type: 'card',
+												fieldId: field.fieldId,
+												fieldType: field.type,
+												validationOptions: field.validationOptions,
+												configurationOptions: field.configurationOptions,
+												defaultValue: field.defaultValue,
+												isRequired: field.isRequired,
+												dependencies: field.dependencies,
+												useCases: field.useCases,
+												accessibility: field.accessibility,
+												htmlType: field.htmlType,
+												component: field.component,
+												schema: field.schema,
+												logic: field.logic,
+												sequence: field.sequence,
+												isActive: field.isActive,
+												tags: field.tags,
+												version: field.version
 											}}
-											onmousedown={() => console.log('Mouse down on field library card:', card.name)}
-											ondragstart={() => console.log('Drag start on field library card:', card.name)}
+											role="button"
+											aria-label={`Draggable card: ${field.name}`}
+											onclick={() => {
+												console.log('Field library card clicked:', field);
+											}}
+											onmousedown={() => console.log('Mouse down on field library card:', field.name)}
+											ondragstart={() => console.log('Drag start on field library card:', field.name)}
 										>
-											<Button class="w-full justify-start space-x-2" variant="ghost">
-												<Icon icon={card.icon} width="20" height="20" class="text-primary" />
+											<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
+												<Icon icon={field.icon || 'material-symbols:category-outline'} width="20" height="20" class="text-primary" />
 												<div class="flex flex-col items-start">
-													<span class="text-sm">{card.name}</span>
-													{#if card.description}
-														<span class="text-xs text-gray-500 truncate max-w-32">
-															{card.description}
+													<span class="text-sm text-gray-700 dark:text-gray-200">{field.name}</span>
+													{#if field.description}
+														<span class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-32">
+															{field.description}
 														</span>
 													{/if}
 												</div>
 											</Button>
 										</div>
-									</li>
-								{/each}
-							</ul>
-						{/if}
-					{:else}
-						<ul class="space-y-2 px-2">
-							{#if typeOfQuestion === 'HealthCare' && selectedTab === 'HealthCare'}
-								{#each healthCarePlugins as card}
-									<li>
-										<div
-											class="w-full cursor-grab"
-											use:draggable={{ ...card, type: 'card' }}
-											role="button"
-											aria-label={`Draggable card: ${card.name}`}
-										>
-											<Button class="w-full justify-start space-x-2" variant="ghost">
-												<Icon icon={card.icon} width="20" height="20" class="text-primary" />
-												<span>{card.name}</span>
-											</Button>
-										</div>
-									</li>
-								{/each}
-							{:else if typeOfQuestion === 'Basic' && selectedTab === 'Basic'}
-								{#each basicCards as card}
-									<li>
-										<div
-											class="w-full cursor-grab"
-											use:draggable={{ ...card, type: 'card' }}
-											role="button"
-											aria-label={`Draggable card: ${card.name}`}
-										>
-											<Button class="w-full justify-start space-x-2" variant="ghost">
-												<Icon icon={card.icon} width="20" height="20" class="text-primary" />
-												<span>{card.name}</span>
-											</Button>
-										</div>
-									</li>
-								{/each}
-							{/if}
-						</ul>
+									{/each}
+								{/if}
+							</div>
+						</div>
 					{/if}
 				</div>
-			</div>
+			{/each}
 		</Card.Root>
 </div>
 
