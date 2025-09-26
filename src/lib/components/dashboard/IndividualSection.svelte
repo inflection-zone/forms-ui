@@ -197,7 +197,7 @@
 
 <div class="bg-card rounded-xl shadow-sm border border-border">
 	<!-- Header -->
-	<div class="p-6 border-b border-border">
+	<!-- <div class="p-6 border-b border-border">
 		<div class="flex justify-between items-center">
 			<div>
 				<h3 class="text-lg font-semibold text-card-foreground">Individual Responses</h3>
@@ -209,7 +209,7 @@
 				Export PDF
 			</button>
 		</div>
-	</div>
+	</div> -->
 
 	{#if paginatedResponses.length > 0}
 		<!-- Table View -->
