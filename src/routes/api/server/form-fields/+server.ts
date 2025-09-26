@@ -14,10 +14,57 @@ export const POST = async (event: RequestEvent) => {
         // Check if this is a Field Library field with rich configuration
         const isFieldLibraryField = data.ParentTemplateId && data.ParentSectionId && data.ResponseType;
         
+        // Helper: remove undefined/null and sanitize DefaultExpectedUnit
+        const isUuid = (val: unknown) =>
+            typeof val === 'string' &&
+            /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(val);
+
+        const normalizeOptions = (responseType: string, options: any): any[] => {
+            if (!Array.isArray(options)) return [];
+            // Only attach options for selection/boolean response types
+            const selectable = ['SingleChoiceSelection', 'MultiChoiceSelection', 'Boolean'];
+            if (!selectable.includes(responseType)) return [];
+
+            const toText = (item: any): string | null => {
+                if (!item) return null;
+                if (typeof item === 'string') return item;
+                if (typeof item === 'number') return String(item);
+                if (item.Text) return String(item.Text);
+                if (item.label) return String(item.label);
+                if (item.value) return String(item.value);
+                if (item.min !== undefined && item.max !== undefined) {
+                    return item.label ? String(item.label) : `${item.min}-${item.max}`;
+                }
+                return null;
+            };
+
+            const normalized: any[] = [];
+            options.forEach((opt: any, idx: number) => {
+                const text = toText(opt);
+                if (text) {
+                    normalized.push({ Text: text, Sequence: idx + 1, ...(opt.ImageUrl ? { ImageUrl: opt.ImageUrl } : {}) });
+                }
+            });
+            return normalized;
+        };
+
+        const prune = (obj: Record<string, any>) => {
+            const cleaned: Record<string, any> = {};
+            for (const [k, v] of Object.entries(obj)) {
+                if (v === undefined || v === null) continue;
+                // Only allow DefaultExpectedUnit if it's a UUID (FK to input_unit_lists)
+                if (k === 'DefaultExpectedUnit' && !isUuid(v)) continue;
+                // Do not send empty Options arrays; backend treats missing as optional
+                if (k === 'Options' && Array.isArray(v) && v.length === 0) continue;
+                cleaned[k] = v;
+            }
+            return cleaned;
+        };
+
         let model;
         if (isFieldLibraryField) {
             // Use Field Library configuration - data is already in correct format
-            model = {
+            model = prune({
                 ParentTemplateId: data.ParentTemplateId,
                 ParentSectionId: data.ParentSectionId,
                 ResponseType: data.ResponseType,
@@ -25,7 +72,7 @@ export const POST = async (event: RequestEvent) => {
                 Description: data.Description,
                 IsRequired: data.IsRequired,
                 Hint: data.Hint,
-                Options: data.Options,
+                Options: normalizeOptions(data.ResponseType, data.Options),
                 RangeMin: data.RangeMin,
                 RangeMax: data.RangeMax,
                 DefaultExpectedUnit: data.DefaultExpectedUnit,
@@ -34,15 +81,15 @@ export const POST = async (event: RequestEvent) => {
                 IsFieldLibraryField: data.IsFieldLibraryField,
                 FieldLibraryId: data.FieldLibraryId,
                 FieldLibraryType: data.FieldLibraryType
-            };
+            });
             console.log('Using Field Library configuration:', model);
         } else {
             // Use basic configuration for Basic/HealthCare fields
-            model = {
+            model = prune({
                 ParentTemplateId: data.parentFormTemplateId,
                 ParentSectionId: data.parentSectionId,
                 ResponseType: data.responseType
-            };
+            });
 
             if (data.responseType === 'Height') {
                 model['Title'] = 'Height (Centimeter)?';
@@ -59,6 +106,7 @@ export const POST = async (event: RequestEvent) => {
             if (data.responseType === 'BloodPressure') {
                 model['Title'] = 'Blood Pressure (in mmHg)?';
             }
+            // Basic/health care do not carry options here
             console.log('Using basic configuration:', model);
         }
         const response = await createQuestion(model);
