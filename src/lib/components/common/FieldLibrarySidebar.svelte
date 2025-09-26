@@ -147,7 +147,8 @@
 					value: field.responseType,
 					icon: field.icon || 'material-symbols:category-outline',
 					category: field.category,
-					description: field.description
+					description: field.description,
+					type: 'card'
 				}));
 			}
 			const category = fieldLibraryCategories.find(c => c.name === selectedCategory);
@@ -160,7 +161,8 @@
 				value: field.responseType,
 				icon: field.icon || 'material-symbols:category-outline',
 				category: field.category,
-				description: field.description
+				description: field.description,
+				type: 'card'
 			})) : [];
 		}
 		return [];
@@ -192,11 +194,12 @@
 		</div>
 	</Card.Root>
 
-	<!-- Field Library Management -->
-	{#if typeOfQuestion === 'FieldLibrary'}
-		<Card.Root class="!rounded-none !border-none !shadow-none md:w-full md:px-2 2xl:w-full">
-			<Card.Title class="text-md px-3 flex items-center justify-between">
-				Field Library
+
+	<!-- Question Types -->
+	<Card.Root class="!rounded-none !border-none !shadow-none md:w-full md:px-2 2xl:w-full">
+		<Card.Title class="text-md px-3 flex items-center justify-between">
+			{typeOfQuestion === 'FieldLibrary' ? 'Field Library' : 'Question'}
+			{#if typeOfQuestion === 'FieldLibrary'}
 				<div class="flex gap-1">
 					<Button
 						variant="ghost"
@@ -215,97 +218,9 @@
 						<Icon icon="material-symbols:download" class="h-4 w-4" />
 					</Button>
 				</div>
-			</Card.Title>
-			
-			<div class="rounded-md px-3 dark:border-gray-400">
-				<!-- Search Bar -->
-				<div class="mb-3">
-					<div class="relative">
-						<input
-							type="text"
-							placeholder="Search fields..."
-							bind:value={searchQuery}
-							oninput={onSearch}
-							class="w-full rounded-md border border-gray-300 px-3 py-2 pr-10 text-sm focus:border-primary focus:outline-none dark:border-gray-600 dark:bg-gray-800"
-						/>
-						<Icon
-							icon="material-symbols:search"
-							class="absolute right-3 top-2.5 h-4 w-4 text-gray-400"
-						/>
-					</div>
-				</div>
-
-				<!-- Category Selection -->
-				{#if !searchQuery.trim()}
-					<div class="mb-3">
-						<Select.Root type="single" bind:value={selectedCategory} onValueChange={onCategoryChange}>
-							<Select.Trigger class="w-full">
-								<Select.Value placeholder="Select category" />
-							</Select.Trigger>
-							<Select.Content>
-								{#each fieldLibraryCategories as category}
-									<Select.Item value={category.name}>
-										<div class="flex items-center gap-2">
-											<Icon icon={category.icon} class="h-4 w-4" />
-											{category.displayName} ({category.fieldCount})
-										</div>
-									</Select.Item>
-								{/each}
-							</Select.Content>
-						</Select.Root>
-					</div>
-				{/if}
-
-				<!-- Fields List -->
-				<div class="custom-scrollbar max-h-96 overflow-y-auto rounded-bl-md rounded-br-md border py-4">
-					{#if isLoading}
-						<div class="flex items-center justify-center py-8">
-							<Icon icon="svg-spinners:ring-resize" class="h-6 w-6 text-primary" />
-							<span class="ml-2 text-sm text-gray-500">Loading...</span>
-						</div>
-					{:else if currentFields().length === 0}
-						<div class="flex flex-col items-center justify-center py-8 text-center">
-							<Icon icon="material-symbols:search-off" class="h-8 w-8 text-gray-400 mb-2" />
-							<p class="text-sm text-gray-500">
-								{searchQuery.trim() ? 'No fields found' : 'No fields available'}
-							</p>
-						</div>
-					{:else}
-						<ul class="space-y-2 px-2">
-							{#each currentFields() as card}
-								<li>
-									<div
-										class="w-full cursor-grab"
-										use:draggable={{ ...card, type: 'card' }}
-										role="button"
-										aria-label={`Draggable card: ${card.name}`}
-									>
-										<Button class="w-full justify-start space-x-2" variant="ghost">
-											<Icon icon={card.icon} width="20" height="20" class="text-primary" />
-											<div class="flex flex-col items-start">
-												<span class="text-sm">{card.name}</span>
-												{#if card.description}
-													<span class="text-xs text-gray-500 truncate max-w-32">
-														{card.description}
-													</span>
-												{/if}
-											</div>
-										</Button>
-									</div>
-								</li>
-							{/each}
-						</ul>
-					{/if}
-				</div>
-			</div>
-		</Card.Root>
-	{/if}
-
-	<!-- Original Question Types -->
-	{#if typeOfQuestion !== 'FieldLibrary'}
-		<Card.Root class="!rounded-none !border-none !shadow-none md:w-full md:px-2 2xl:w-full">
-			<Card.Title class="text-md px-3">Question</Card.Title>
-			<div class="rounded-md px-3 dark:border-gray-400">
+			{/if}
+		</Card.Title>
+		<div class="rounded-md px-3 dark:border-gray-400">
 				<div class="flex flex-wrap justify-around py-2 px-4 rounded-tl-md rounded-tr-md border border-b-0">
 					<label class="flex cursor-pointer items-center">
 						<input
@@ -365,46 +280,132 @@
 						Field Library
 					</label>
 				</div>
+				{#if typeOfQuestion === 'FieldLibrary'}
+					<!-- Search Bar -->
+					<div class="mb-3">
+						<div class="relative">
+							<input
+								type="text"
+								placeholder="Search fields..."
+								bind:value={searchQuery}
+								oninput={onSearch}
+								class="w-full rounded-md border border-gray-300 px-3 py-2 pr-10 text-sm focus:border-primary focus:outline-none dark:border-gray-600 dark:bg-gray-800"
+							/>
+							<Icon
+								icon="material-symbols:search"
+								class="absolute right-3 top-2.5 h-4 w-4 text-gray-400"
+							/>
+						</div>
+					</div>
+
+					<!-- Category Selection -->
+					{#if !searchQuery.trim()}
+						<div class="mb-3">
+							<Select.Root type="single" bind:value={selectedCategory} onValueChange={onCategoryChange}>
+								<Select.Trigger class="w-full">
+									<Select.Value placeholder="Select category" />
+								</Select.Trigger>
+								<Select.Content>
+									{#each fieldLibraryCategories as category}
+										<Select.Item value={category.name}>
+											<div class="flex items-center gap-2">
+												<Icon icon={category.icon} class="h-4 w-4" />
+												{category.displayName} ({category.fieldCount})
+											</div>
+										</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+						</div>
+					{/if}
+				{/if}
+
 				<div class="custom-scrollbar overflow-y-auto rounded-bl-md rounded-br-md border py-4">
-					<ul class="space-y-2 px-2">
-						{#if typeOfQuestion === 'HealthCare' && selectedTab === 'HealthCare'}
-							{#each healthCarePlugins as card}
-								<li>
-									<div
-										class="w-full cursor-grab"
-										use:draggable={{ ...card, type: 'card' }}
-										role="button"
-										aria-label={`Draggable card: ${card.name}`}
-									>
-										<Button class="w-full justify-start space-x-2" variant="ghost">
-											<Icon icon={card.icon} width="20" height="20" class="text-primary" />
-											<span>{card.name}</span>
-										</Button>
-									</div>
-								</li>
-							{/each}
-						{:else if typeOfQuestion === 'Basic' && selectedTab === 'Basic'}
-							{#each basicCards as card}
-								<li>
-									<div
-										class="w-full cursor-grab"
-										use:draggable={{ ...card, type: 'card' }}
-										role="button"
-										aria-label={`Draggable card: ${card.name}`}
-									>
-										<Button class="w-full justify-start space-x-2" variant="ghost">
-											<Icon icon={card.icon} width="20" height="20" class="text-primary" />
-											<span>{card.name}</span>
-										</Button>
-									</div>
-								</li>
-							{/each}
+					{#if typeOfQuestion === 'FieldLibrary' && selectedTab === 'FieldLibrary'}
+						{#if isLoading}
+							<div class="flex items-center justify-center py-8">
+								<Icon icon="svg-spinners:ring-resize" class="h-6 w-6 text-primary" />
+								<span class="ml-2 text-sm text-gray-500">Loading...</span>
+							</div>
+						{:else if currentFields().length === 0}
+							<div class="flex flex-col items-center justify-center py-8 text-center">
+								<Icon icon="material-symbols:search-off" class="h-8 w-8 text-gray-400 mb-2" />
+								<p class="text-sm text-gray-500">
+									{searchQuery.trim() ? 'No fields found' : 'No fields available'}
+								</p>
+							</div>
+						{:else}
+							<ul class="space-y-2 px-2">
+								{#each currentFields() as card}
+									<li>
+										<div
+											class="w-full cursor-grab"
+											use:draggable={{ ...card, type: 'card' }}
+											role="button"
+											aria-label={`Draggable card: ${card.name}`}
+											onclick={() => {
+												console.log('Field library card clicked:', { ...card, type: 'card' });
+												console.log('Card data for drag:', card);
+											}}
+											onmousedown={() => console.log('Mouse down on field library card:', card.name)}
+											ondragstart={() => console.log('Drag start on field library card:', card.name)}
+										>
+											<Button class="w-full justify-start space-x-2" variant="ghost">
+												<Icon icon={card.icon} width="20" height="20" class="text-primary" />
+												<div class="flex flex-col items-start">
+													<span class="text-sm">{card.name}</span>
+													{#if card.description}
+														<span class="text-xs text-gray-500 truncate max-w-32">
+															{card.description}
+														</span>
+													{/if}
+												</div>
+											</Button>
+										</div>
+									</li>
+								{/each}
+							</ul>
 						{/if}
-					</ul>
+					{:else}
+						<ul class="space-y-2 px-2">
+							{#if typeOfQuestion === 'HealthCare' && selectedTab === 'HealthCare'}
+								{#each healthCarePlugins as card}
+									<li>
+										<div
+											class="w-full cursor-grab"
+											use:draggable={{ ...card, type: 'card' }}
+											role="button"
+											aria-label={`Draggable card: ${card.name}`}
+										>
+											<Button class="w-full justify-start space-x-2" variant="ghost">
+												<Icon icon={card.icon} width="20" height="20" class="text-primary" />
+												<span>{card.name}</span>
+											</Button>
+										</div>
+									</li>
+								{/each}
+							{:else if typeOfQuestion === 'Basic' && selectedTab === 'Basic'}
+								{#each basicCards as card}
+									<li>
+										<div
+											class="w-full cursor-grab"
+											use:draggable={{ ...card, type: 'card' }}
+											role="button"
+											aria-label={`Draggable card: ${card.name}`}
+										>
+											<Button class="w-full justify-start space-x-2" variant="ghost">
+												<Icon icon={card.icon} width="20" height="20" class="text-primary" />
+												<span>{card.name}</span>
+											</Button>
+										</div>
+									</li>
+								{/each}
+							{/if}
+						</ul>
+					{/if}
 				</div>
 			</div>
 		</Card.Root>
-	{/if}
 </div>
 
 <!-- Export Dialog -->

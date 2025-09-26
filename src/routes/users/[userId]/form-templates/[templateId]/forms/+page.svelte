@@ -60,10 +60,10 @@
 		event.preventDefault();
 		event.stopPropagation();
 
-		// console.log('dropData: ', dropData);
-		// console.log('sectionId: ', sectionId);
-		// console.log('subsectionId: ', subsectionId);
-		// console.log('parentFormTemplateId: ', parentFormTemplateId);
+		console.log('dropData: ', dropData);
+		console.log('sectionId: ', sectionId);
+		console.log('subsectionId: ', subsectionId);
+		console.log('parentFormTemplateId: ', parentFormTemplateId);
 		if (sectionId === null && subsectionId === null) {
 			// To create section in root section
 			// Required data: parentFormTemplateId, parentSectionId that is rootSectionId
