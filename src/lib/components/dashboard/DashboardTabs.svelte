@@ -6,10 +6,10 @@
 
 	const tabs = [
 		{ id: 'overview', label: 'Overview' },
-		{ id: 'analytics', label: 'Analytics' },
+		// { id: 'analytics', label: 'Analytics' },
 		{ id: 'responses', label: 'Response Explorer' },
 		{ id: 'individual', label: 'Individual Responses' },
-		{ id: 'segments', label: 'Segments' }
+		// { id: 'segments', label: 'Segments' }
 	];
 </script>
 

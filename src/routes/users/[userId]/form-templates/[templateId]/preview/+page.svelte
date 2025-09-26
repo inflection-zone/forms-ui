@@ -9,6 +9,7 @@
 
 	let { data }: { data: PageServerData } = $props();
 	const userId = page.params.userId;
+	const templateId = page.params.templateId;
 	$inspect(data)
 
 	let section = $state(data.assessmentTemplate.FormSections[0].Subsections);
@@ -21,7 +22,7 @@
 	<Breadcrumb.Root>
 		<Breadcrumb.List class="flex">
 			<Breadcrumb.Item>
-				<Breadcrumb.Link href="/users/{userId}/form-templates">Form Template</Breadcrumb.Link>
+				<Breadcrumb.Link href="/users/{userId}/form-templates/{templateId}/dashboard">Form Template</Breadcrumb.Link>
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator />
 			<Breadcrumb.Item>
