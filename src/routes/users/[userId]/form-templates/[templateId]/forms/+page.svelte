@@ -6,8 +6,11 @@
 		Sidebar, 
 		FormHelper
 	} from '$lib/index';
+	import FieldLibrarySidebar from '$lib/components/common/FieldLibrarySidebar.svelte';
+	import FieldTemplateManager from '$lib/components/common/FieldTemplateManager.svelte';
 	import { healthCarePlugins, basicCards } from '$lib/components/common/questionTypes';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import Sections from './components/Sections.svelte';
 	import { dropzone } from '$lib/components/common/dnd';
 	import { invalidate, invalidateAll } from '$app/navigation';
@@ -20,7 +23,7 @@
 
 	let errors: Record<string, string> = $state({});
 
-	let typeOfQuestion: 'Basic' | 'HealthCare' = $state('Basic');
+	let typeOfQuestion: 'Basic' | 'HealthCare' | 'FieldLibrary' = $state('Basic');
 	let uiSections = $state(data.templateInfo.FormSections[0].Subsections);
 	const userId = $derived(page.params.userId);
 	const parentFormTemplateId = $derived(page.params.templateId);
@@ -37,6 +40,7 @@
 
 	let cardToOpen = $state();
 	let sectionToOpen = $state();
+	let showTemplateManager = $state(false);
 
 	$effect(() => {
 		uiSections = data.templateInfo.FormSections[0].Subsections;
@@ -44,8 +48,8 @@
 
 	function changeTypes(event: Event) {
 		const target = event.target as HTMLInputElement;
-		if (target.value === 'Basic' || target.value === 'HealthCare') {
-			typeOfQuestion = target.value;
+		if (target.value === 'Basic' || target.value === 'HealthCare' || target.value === 'FieldLibrary') {
+			typeOfQuestion = target.value as 'Basic' | 'HealthCare' | 'FieldLibrary';
 		}
 	}
 
@@ -308,6 +312,10 @@
 	<FormHelper {closeSheet} {handleQuestionCardUpdate} bind:questionCard={cardToOpen} bind:errors bind:questionList={uiSections}/>
 {/if}
 
+{#if showTemplateManager}
+	<FieldTemplateManager bind:isOpen={showTemplateManager} onClose={() => showTemplateManager = false} />
+{/if}
+
 <!-- Section -->
 
 <div class="bg-green-5 my-10 flex min-h-screen flex-row">
@@ -319,11 +327,11 @@
 			/>
 		</button>
 
-		<Sidebar {typeOfQuestion} {changeTypes} {healthCarePlugins} {basicCards} {isOpen} />
+		<FieldLibrarySidebar {typeOfQuestion} {changeTypes} {isOpen} />
 	</div>
 	<div class="flex md:w-[70%] overflow-hidden">
         <div class="my-1 w-full space-y-2 p-2 md:mx-24 lg:mx-10">
-            <div class="flex w-full flex-row items-center">
+            <div class="flex w-full flex-row items-center justify-between">
                 <Breadcrumb.Root>
                     <Breadcrumb.List class="flex">
                         <Breadcrumb.Item>
@@ -335,6 +343,16 @@
                         </Breadcrumb.Item>
                     </Breadcrumb.List>
                 </Breadcrumb.Root>
+                
+                <!-- Field Library Management Button -->
+                <Button
+                    variant="outline"
+                    onclick={() => showTemplateManager = true}
+                    class="flex items-center gap-2"
+                >
+                    <Icon icon="material-symbols:widgets" class="h-4 w-4" />
+                    Field Library
+                </Button>
                 <!-- <div class="ml-auto flex items-center">
                     <Dialog.Root>
                         <Dialog.Trigger class="{buttonVariants({ variant: 'outline' })} flex"></Dialog.Trigger>
