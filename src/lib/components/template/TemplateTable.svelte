@@ -291,6 +291,7 @@
 		currentTemplateData = null;
 	}
 
+
 	// Button variant classes
 	function getButtonClasses(variant: 'default' | 'ghost' | 'outline' | 'destructive' = 'default', size: 'sm' | 'md' | 'lg' = 'md') {
 		const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
@@ -368,7 +369,7 @@
 				<th class="p-4 text-center">Tenant Code</th> -->
 				<th class=" w-32 p-3 text-start">Created At</th>
 				<th class=" w-20 p-3 text-center">Version</th>
-				<th class=" w-40 p-3 text-center">Actions</th>
+				<th class=" w-48 p-3 text-center">Actions</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -457,6 +458,23 @@
 									{#if hoveredButton === `embed-${row.id}`}
 										<div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-50">
 											Embed Form
+										</div>
+									{/if}
+								</div>
+
+								<!-- Export Button -->
+								<div class="relative">
+									<button
+										class="{getButtonClasses('ghost', 'sm')} p-2 h-10 w-10"
+										onclick={() => exportFormTemplate(row.id, row.Title)}
+										onmouseenter={() => hoveredButton = `export-${row.id}`}
+										onmouseleave={() => hoveredButton = null}
+									>
+										<Icon icon="lucide:download" width="20" height="20" />
+									</button>
+									{#if hoveredButton === `export-${row.id}`}
+										<div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-50">
+											Export
 										</div>
 									{/if}
 								</div>
