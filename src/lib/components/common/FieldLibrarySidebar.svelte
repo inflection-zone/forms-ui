@@ -48,6 +48,121 @@
 	// Individual Field Library category states
 	let fieldLibraryCategoryExpanded: Record<string, boolean> = $state({});
 
+	// Function to get category icons
+	function getCategoryIcon(categoryName: string): string {
+		const iconMap: Record<string, string> = {
+			'business-professional': 'material-symbols:business-center',
+			'date-time': 'material-symbols:schedule',
+			'e-commerce': 'material-symbols:shopping-cart',
+			'educational': 'material-symbols:school',
+			'financial': 'material-symbols:account-balance',
+			'geographic': 'material-symbols:place',
+			'healthcare': 'healthicons:medical-kit',
+			'legal': 'material-symbols:gavel',
+			'measurement': 'material-symbols:straighten',
+			'personal': 'material-symbols:person',
+			'research': 'material-symbols:science',
+			'survey-research': 'material-symbols:poll',
+			'text-based': 'material-symbols:text-fields',
+			'validation': 'material-symbols:verified'
+		};
+		return iconMap[categoryName] || 'material-symbols:category-outline';
+	}
+
+	// Function to get field type icons
+	function getFieldIcon(fieldType: string, responseType: string): string {
+		const iconMap: Record<string, string> = {
+			'text': 'material-symbols:text-fields',
+			'email': 'material-symbols:email',
+			'phone': 'material-symbols:phone',
+			'url': 'material-symbols:link',
+			'textarea': 'material-symbols:notes',
+			'number': 'material-symbols:numbers',
+			'integer': 'material-symbols:123',
+			'float': 'material-symbols:decimal',
+			'currency': 'material-symbols:attach-money',
+			'percentage': 'material-symbols:percent',
+			'date': 'material-symbols:calendar-today',
+			'time': 'material-symbols:schedule',
+			'datetime': 'material-symbols:event',
+			'boolean': 'material-symbols:toggle-on',
+			'checkbox': 'material-symbols:check-box',
+			'radio': 'material-symbols:radio-button-checked',
+			'select': 'material-symbols:arrow-drop-down',
+			'multiselect': 'material-symbols:checklist',
+			'rating': 'material-symbols:star',
+			'range': 'material-symbols:tune',
+			'file': 'material-symbols:attach-file',
+			'image': 'material-symbols:image',
+			'address': 'material-symbols:location-on',
+			'name': 'material-symbols:person',
+			'age': 'material-symbols:elderly',
+			'gender': 'material-symbols:transgender',
+			'height': 'material-symbols:height',
+			'weight': 'material-symbols:monitor-weight',
+			'temperature': 'material-symbols:thermostat',
+			'pulse': 'material-symbols:favorite',
+			'blood-pressure': 'material-symbols:monitor-heart',
+			'country': 'material-symbols:public',
+			'state': 'material-symbols:location-city',
+			'city': 'material-symbols:location-city',
+			'zipcode': 'material-symbols:markunread-mailbox',
+			'credit-card': 'material-symbols:credit-card',
+			'bank-account': 'material-symbols:account-balance',
+			'price': 'material-symbols:attach-money',
+			'quantity': 'material-symbols:inventory',
+			'product': 'material-symbols:inventory-2',
+			'category': 'material-symbols:category',
+			'tag': 'material-symbols:tag',
+			'color': 'material-symbols:palette',
+			'size': 'material-symbols:straighten',
+			'weight': 'material-symbols:monitor-weight',
+			'dimension': 'material-symbols:straighten',
+			'volume': 'material-symbols:invert-colors',
+			'area': 'material-symbols:square-foot',
+			'speed': 'material-symbols:speed',
+			'temperature': 'material-symbols:thermostat',
+			'pressure': 'material-symbols:compress',
+			'energy': 'material-symbols:bolt',
+			'power': 'material-symbols:power',
+			'frequency': 'material-symbols:graphic-eq',
+			'angle': 'material-symbols:rotate-right',
+			'length': 'material-symbols:straighten',
+			'distance': 'material-symbols:straighten',
+			'time': 'material-symbols:schedule',
+			'duration': 'material-symbols:timer',
+			'interval': 'material-symbols:schedule',
+			'frequency': 'material-symbols:graphic-eq',
+			'rate': 'material-symbols:trending-up',
+			'ratio': 'material-symbols:aspect-ratio',
+			'proportion': 'material-symbols:aspect-ratio',
+			'concentration': 'material-symbols:science',
+			'density': 'material-symbols:science',
+			'viscosity': 'material-symbols:water-drop',
+			'conductivity': 'material-symbols:bolt',
+			'resistance': 'material-symbols:electrical-services',
+			'capacitance': 'material-symbols:electrical-services',
+			'inductance': 'material-symbols:electrical-services',
+			'voltage': 'material-symbols:electrical-services',
+			'current': 'material-symbols:electrical-services',
+			'power': 'material-symbols:power',
+			'energy': 'material-symbols:bolt',
+			'frequency': 'material-symbols:graphic-eq',
+			'wavelength': 'material-symbols:waves',
+			'amplitude': 'material-symbols:graphic-eq',
+			'phase': 'material-symbols:rotate-right',
+			'period': 'material-symbols:schedule',
+			'wavelength': 'material-symbols:waves',
+			'frequency': 'material-symbols:graphic-eq',
+			'amplitude': 'material-symbols:graphic-eq',
+			'phase': 'material-symbols:rotate-right',
+			'period': 'material-symbols:schedule'
+		};
+		
+		// Try to match by fieldType first, then responseType
+		return iconMap[fieldType] || iconMap[responseType] || 'material-symbols:category-outline';
+	}
+
 	onMount(async () => {
 		await loadFieldLibraryCategories();
 	});
@@ -123,7 +238,9 @@
 
 		try {
 			isLoading = true;
+			console.log('Searching for:', searchQuery);
 			const results = await fieldLibraryService.searchFields(searchQuery);
+			console.log('Search results:', results);
 			searchResults = results;
 		} catch (error) {
 			console.error('Search failed:', error);
@@ -321,6 +438,77 @@
 
 
 		<div class="space-y-1 px-3 pb-3">
+			<!-- Search Results Section -->
+			{#if searchQuery.trim()}
+				<div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+					<div class="p-3 bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-gray-700">
+						<div class="flex items-center gap-2">
+							<Icon icon="material-symbols:search" class="h-4 w-4 text-blue-600 dark:text-blue-400" />
+							<span class="text-sm font-medium text-blue-700 dark:text-blue-300">
+								{#if searchResults.length > 0}
+									Search Results ({searchResults.length})
+								{:else}
+									Search Results
+								{/if}
+							</span>
+						</div>
+					</div>
+					<div class="p-3 bg-gray-50 dark:bg-gray-800">
+						{#if searchResults.length > 0}
+							<div class="space-y-1">
+								{#each searchResults as field}
+									<div
+										class="w-full cursor-grab rounded-md hover:bg-white dark:hover:bg-gray-700 transition-colors"
+										use:draggable={{ 
+											id: field.id,
+											name: field.name,
+											value: field.responseType,
+											icon: field.icon || 'material-symbols:category-outline',
+											category: field.category,
+											description: field.description,
+											type: 'card',
+											fieldId: field.fieldId,
+											fieldType: field.type,
+											validationOptions: field.validationOptions,
+											configurationOptions: field.configurationOptions,
+											defaultValue: field.defaultValue,
+											isRequired: field.isRequired,
+											dependencies: field.dependencies,
+											useCases: field.useCases,
+											accessibility: field.accessibility,
+											htmlType: field.htmlType,
+											component: field.component,
+											schema: field.schema,
+											logic: field.logic,
+											sequence: field.sequence,
+											isActive: field.isActive,
+											tags: field.tags,
+											version: field.version
+										}}
+										role="button"
+										aria-label={`Draggable card: ${field.name}`}
+									>
+										<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
+											<Icon icon={field.icon || getFieldIcon(field.type, field.responseType)} width="20" height="20" class="text-primary" />
+											<div class="flex flex-col items-start">
+												<span class="text-sm text-gray-700 dark:text-gray-200">{field.name}</span>
+												<span class="text-xs text-gray-500 dark:text-gray-400">{field.category}</span>
+											</div>
+										</Button>
+									</div>
+								{/each}
+							</div>
+						{:else}
+							<div class="flex flex-col items-center justify-center py-8 text-center">
+								<Icon icon="material-symbols:search-off" class="h-8 w-8 text-gray-400 dark:text-gray-500 mb-2" />
+								<p class="text-sm text-gray-500 dark:text-gray-400">No fields found for "{searchQuery}"</p>
+								<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Try a different search term</p>
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
+
 			<!-- Basic Fields Section -->
 			<div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
 				<button
@@ -402,11 +590,11 @@
 						class="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-gray-900"
 						onclick={() => toggleFieldLibraryCategory(category.name)}
 					>
-						<div class="flex items-center gap-3">
-							<Icon icon={category.icon} class="h-5 w-5 text-primary" />
-							<span class="font-medium text-gray-700 dark:text-gray-200">{category.displayName}</span>
-							<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">{category.fieldCount} types</span>
-						</div>
+					<div class="flex items-center gap-3">
+						<Icon icon={category.icon || getCategoryIcon(category.name)} class="h-5 w-5 text-primary" />
+						<span class="font-medium text-gray-700 dark:text-gray-200">{category.displayName}</span>
+						<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">{category.fieldCount} types</span>
+					</div>
 						<Icon 
 							icon="material-symbols:keyboard-arrow-down" 
 							class="h-5 w-5 text-gray-400 dark:text-gray-500 transition-transform {fieldLibraryCategoryExpanded[category.name] ? 'rotate-180' : ''}"
@@ -464,7 +652,7 @@
 											ondragstart={() => console.log('Drag start on field library card:', field.name)}
 										>
 											<Button class="w-full justify-start space-x-2 text-left" variant="ghost">
-												<Icon icon={field.icon || 'material-symbols:category-outline'} width="20" height="20" class="text-primary" />
+												<Icon icon={field.icon || getFieldIcon(field.type, field.responseType)} width="20" height="20" class="text-primary" />
 												<div class="flex flex-col items-start">
 													<span class="text-sm text-gray-700 dark:text-gray-200">{field.name}</span>
 													{#if field.description}
