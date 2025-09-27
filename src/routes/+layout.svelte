@@ -186,14 +186,74 @@
 									
 								} else {
 									// Handle regular submissions (created online but submitted offline)
-									// For regular submissions, we can use a simpler approach
-									// Since the submission already exists, we just need to save the question responses and submit
+									// For regular submissions, we need to create question responses first, then save and submit
 									try {
-										// Save question responses using the cached form data
+										// Get submission details first to get the template ID
+										console.log(`🔍 Getting submission details for token: ${submissionToken}`);
+										const submissionRes = await fetch(`/api/server/submission/search?encrypted=${submissionToken}`);
+										
+										if (!submissionRes.ok) {
+											throw new Error(`Failed to fetch submission details: ${submissionRes.status} ${submissionRes.statusText}`);
+										}
+										
+										const submissionData = await submissionRes.json();
+										console.log('📋 Submission data received:', submissionData);
+										
+										if (submissionData.Status !== 'success' || !submissionData.Data?.Items?.[0]) {
+											throw new Error('Failed to get submission details from server');
+										}
+										
+										const submission = submissionData.Data.Items[0];
+										const templateId = submission.FormTemplateId;
+										const submissionId = submission.id;
+										
+										// Get template info for regular submissions
+										let submissionTemplateInfo = null;
+										try {
+											console.log(`🔍 Getting template details for templateId: ${templateId}`);
+											// Get template details using the template ID from submission
+											const templateRes = await fetch(`/api/server/template/${templateId}/details`);
+											
+											if (!templateRes.ok) {
+												throw new Error(`Failed to fetch template details: ${templateRes.status} ${templateRes.statusText}`);
+											}
+											
+											const templateData = await templateRes.json();
+											console.log('📋 Template data received:', templateData);
+											
+											if (templateData.Status === 'success' && templateData.Data?.FormSections) {
+												submissionTemplateInfo = templateData.Data.FormSections[0].Subsections;
+											} else {
+												throw new Error(`Template loading failed: ${templateData.Message || 'Invalid template data structure'}`);
+											}
+										} catch (err) {
+											throw new Error(`Template loading failed: ${err.message}`);
+										}
+
+										if (!submissionTemplateInfo || !Array.isArray(submissionTemplateInfo) || submissionTemplateInfo.length === 0) {
+											throw new Error('Template info not available or empty');
+										}
+
+										// Import the questionResponseModels function for regular submissions
+										const { questionResponseModels } = await import('./form/submission/[id]/apiFunctions');
+										
+										// Create question responses for regular submissions
+										const questionResponses = await questionResponseModels(
+											submissionTemplateInfo,
+											formData,
+											submissionId, // Use the actual submission ID
+											templateId, // Use the actual template ID
+											null // No existing question response data
+										);
+
+										console.log('Question responses created for regular submission:', JSON.stringify(questionResponses, null, 2));
+
+										// Save question responses
 										const saveRes = await fetch('/api/server/question-response', {
 											method: 'POST',
 											headers: { 'Content-Type': 'application/json' },
 											body: JSON.stringify({
+												questionResponses,
 												formSubmissionKey: submissionToken,
 												FormData: formData
 											})
@@ -202,7 +262,7 @@
 										const saveData = await saveRes.json();
 										
 										if (!saveRes.ok) {
-											console.warn(`⚠️ Question response save failed, but continuing with submit: ${saveData.Message || saveRes.statusText}`);
+											throw new Error(`Failed to save question responses: ${saveData.Message || saveRes.statusText}`);
 										}
 
 										// Submit the form - this is the critical part
