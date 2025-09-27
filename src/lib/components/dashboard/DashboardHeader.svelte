@@ -1,39 +1,392 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
+	import { IndexedDbStorageManager } from '$lib/utils/indexdb.store.manager';
+	import { addToast } from '$lib/components/toast/toast.store';
 	import { Helper } from '$lib/utils/helper';
 
-	let { formData, userId, templateId }: {
-		formData: {
-			title: string;
-			description?: string;
-			created: string;
-			lastModified: string;
-			status: string;
-			version?: string;
-			displayCode?: string;
-			type?: string;
-			questions: number;
-		};
-		userId: string;
-		templateId: string;
-	} = $props();
+	let { formData, userId, templateId } = $props();
 
-	let showShareTooltip = $state(false);
-	let showPreviewTooltip = $state(false);
+	let activeTab = $state('');
+	let showShareModal = $state(false);
+	let link = $state('');
+	let copied = $state(false);
+	let qrCodeDataUrl = $state('');
+	let showQRCode = $state(false);
+	
+	// New share modal state
+	let shareTab = $state('one'); // 'one' or 'many'
+	let expirationValue = $state(10);
+	let expirationUnit = $state('Days');
+	let linkType = $state('single'); // 'single' or 'multiple'
+	let multipleLinkCount = $state(10);
+	let emailAddresses = $state('');
+	let singleEmailAddress = $state('');
+	let showEmailInput = $state(false);
+	let generatedLinks = $state([]);
+let showShareTooltip = $state(false);
+    let showPreviewTooltip = $state(false);
+	const tabs = [
+		{ id: 'edit', label: 'Edit Form', icon: 'lucide:edit' },
+		{ id: 'preview', label: 'Preview', icon: 'lucide:eye' },
+		{ id: 'share', label: 'Share Form', icon: 'lucide:share' },
+		{ id: 'delete', label: 'Delete', icon: 'lucide:trash-2' }
+	];
+
+	function handleTabClick(tabId: string) {
+		activeTab = tabId;
+		
+		// Handle specific tab actions
+		switch (tabId) {
+			case 'edit':
+				window.location.href = `/users/${userId}/form-templates/${templateId}/forms`;
+				break;
+			case 'preview':
+				// Open preview in new tab
+				window.open(`/users/${userId}/form-templates/${templateId}/preview`, '_blank');
+				break;
+			case 'share':
+				// Handle share functionality
+				handleShareForm();
+				break;
+			case 'delete':
+				// Handle delete confirmation
+				handleDeleteForm();
+				break;
+		}
+	}
 
 	function handleShareForm() {
-		// Copy form URL to clipboard
-		const formUrl = `${window.location.origin}/users/${userId}/form-templates/${templateId}/forms`;
-		navigator.clipboard.writeText(formUrl).then(() => {
-			// You could add a toast notification here
-			alert('Form URL copied to clipboard!');
-		});
+		showShareModal = true;
 	}
+
+	async function copyToClipboard() {
+		try {
+			await navigator.clipboard.writeText(link);
+			copied = true;
+			setTimeout(() => (copied = false), 2000);
+			addToast({
+				message: 'Link copied to clipboard!',
+				type: 'success',
+				timeout: 3000
+			});
+		} catch (error) {
+			addToast({
+				message: 'Failed to copy link',
+				type: 'error',
+				timeout: 3000
+			});
+		}
+	}
+
+	function openLink() {
+		window.open(link, '_blank');
+	}
+
+	const createLink = async (templateId: string) => {
+		try {
+			if (!navigator.onLine) {
+				console.warn('You are offline. Generating offline link...');
+				try {
+					const generalStorage = new IndexedDbStorageManager('general', 'environment_variables');
+					const code = Math.random().toString(36).substring(2, 8);
+					const encryptedId = btoa(templateId);
+					const offlineLink = `offline-${code}-${encryptedId}`;
+					const baseUrlObj = await generalStorage.get('this_base_url');
+					if (baseUrlObj === null) {
+						console.error('Base URL not found in IndexedDB');
+						// Fallback to default URL
+						link = `http://localhost:5173/offline-form/submissions/${offlineLink}`;
+					} else {
+						const baseUrl = baseUrlObj['this_base_url'] || 'http://localhost:5173';
+						link = `${baseUrl}/offline-form/submissions/${offlineLink}`;
+					}
+					// Generate QR code for the offline link
+					await generateQRCode(link);
+					return link;
+				} catch (indexedDbError) {
+					console.error('IndexedDB Error:', indexedDbError);
+					// Fallback to default URL if IndexedDB fails
+					const code = Math.random().toString(36).substring(2, 8);
+					const encryptedId = btoa(templateId);
+					const offlineLink = `offline-${code}-${encryptedId}`;
+					link = `http://localhost:5173/offline-form/submissions/${offlineLink}`;
+					await generateQRCode(link);
+					return link;
+				}
+			}
+
+			// Use the new share link API
+			const response = await fetch('/api/server/share-link', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					formId: templateId,
+					shareType: 'single',
+					expiresInValue: 7,
+					expiresInUnit: 'days',
+				})
+			});
+			
+			const result = await response.json();
+			if (result.HttpCode === 201) {
+				link = result.Data.shareUrl;
+				// Generate QR code for the link
+				await generateQRCode(link);
+			} else {
+				addToast({
+					message: 'Failed to generate link',
+					type: 'error',
+					timeout: 3000
+				});
+			}
+		} catch (error) {
+			console.error('Submission Error:', error);
+			addToast({
+				message: 'Error generating link',
+				type: 'error',
+				timeout: 3000
+			});
+			return null;
+		}
+	};
 
 	function handleDeleteForm() {
 		if (confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
 			// Handle delete logic here
 			// You would typically make an API call to delete the form
+		}
+	}
+
+	function closeModal() {
+		showShareModal = false;
+		link = '';
+		qrCodeDataUrl = '';
+		showQRCode = false;
+		// Reset new share modal state
+		shareTab = 'one';
+		expirationValue = 10;
+		expirationUnit = 'Days';
+		linkType = 'single';
+		multipleLinkCount = 10;
+		emailAddresses = '';
+		singleEmailAddress = '';
+		showEmailInput = false;
+		generatedLinks = [];
+	}
+
+	// Simple QR code generation using a free API
+	async function generateQRCode(url: string) {
+		try {
+			// Using qr-server.com API for simple QR code generation
+			const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+			qrCodeDataUrl = qrUrl;
+			showQRCode = true;
+		} catch (error) {
+			console.error('Error generating QR code:', error);
+			addToast({
+				message: 'Failed to generate QR code',
+				type: 'error',
+				timeout: 3000
+			});
+		}
+	}
+
+	// New functions for enhanced share functionality
+	async function generateSingleLink() {
+		try {
+			const response = await fetch('/api/server/share-link', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					formId: templateId,
+					shareType: 'single',
+					expiresInValue: expirationValue,
+					expiresInUnit: expirationUnit.toLowerCase(),
+				})
+			});
+			
+			const result = await response.json();
+			if (result.HttpCode === 201) {
+				link = result.Data.shareUrl;
+				await generateQRCode(link);
+			} else {
+				addToast({
+					message: 'Failed to generate link',
+					type: 'error',
+					timeout: 3000
+				});
+			}
+		} catch (error) {
+			console.error('Error generating single link:', error);
+			addToast({
+				message: 'Error generating single link',
+				type: 'error',
+				timeout: 3000
+			});
+		}
+	}
+
+	async function generateMultipleLinks() {
+		try {
+			const response = await fetch('/api/server/share-link', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					formId: templateId,
+					shareType: 'multiple',
+					expiresInValue: expirationValue,
+					expiresInUnit: expirationUnit.toLowerCase(),
+					multipleLinksCount: multipleLinkCount,
+				})
+			});
+			
+			const result = await response.json();
+			if (result.HttpCode === 201) {
+				generatedLinks = result.Data.multipleUrls || [];
+			} else {
+				addToast({
+					message: 'Failed to generate multiple links',
+					type: 'error',
+					timeout: 3000
+				});
+			}
+		} catch (error) {
+			console.error('Error generating multiple links:', error);
+			addToast({
+				message: 'Error generating multiple links',
+				type: 'error',
+				timeout: 3000
+			});
+		}
+	}
+
+	async function copyAllLinks() {
+		if (generatedLinks.length > 0) {
+			try {
+				await navigator.clipboard.writeText(generatedLinks.join('\n'));
+				copied = true;
+				setTimeout(() => (copied = false), 2000);
+				addToast({
+					message: 'All links copied to clipboard!',
+					type: 'success',
+					timeout: 3000
+				});
+			} catch (error) {
+				addToast({
+					message: 'Failed to copy links',
+					type: 'error',
+					timeout: 3000
+				});
+			}
+		}
+	}
+
+	async function sendEmailLinks() {
+		if (emailAddresses.trim()) {
+			const emails = emailAddresses.split(',').map(email => email.trim()).filter(email => email);
+			if (emails.length > 0) {
+				try {
+					// Create share link with email list
+					const response = await fetch('/api/server/share-link', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							formId: templateId,
+							shareType: 'single',
+							expiresInValue: expirationValue,
+							expiresInUnit: expirationUnit.toLowerCase(),
+							emailList: emailAddresses,
+						})
+					});
+					
+					const result = await response.json();
+					if (result.HttpCode === 201) {
+						// Send email with the link
+						await sendEmailWithLink(result.Data.shareUrl, emails);
+						addToast({
+							message: `Email sent to ${emails.length} recipients`,
+							type: 'success',
+							timeout: 3000
+						});
+					} else {
+						addToast({
+							message: 'Failed to create share link',
+							type: 'error',
+							timeout: 3000
+						});
+					}
+				} catch (error) {
+					console.error('Error sending email links:', error);
+					addToast({
+						message: 'Error sending email links',
+						type: 'error',
+						timeout: 3000
+					});
+				}
+			}
+		} else {
+			addToast({
+				message: 'Please enter email addresses',
+				type: 'error',
+				timeout: 3000
+			});
+		}
+	}
+
+	async function sendEmailWithLink(shareUrl: string, emails: string[]) {
+		try {
+			for (const email of emails) {
+				await fetch('/api/server/share-link/send-link', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						FormTemplateId: templateId,
+						EmailTo: email,
+						Message: 'Please fill out this form using the link provided.'
+					})
+				});
+			}
+		} catch (error) {
+			console.error('Error sending emails:', error);
+		}
+	}
+
+	async function sendSingleEmail() {
+		if (singleEmailAddress.trim() && link) {
+			try {
+				await fetch('/api/server/share-link/send-link', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						FormTemplateId: templateId,
+						EmailTo: singleEmailAddress.trim(),
+						Message: 'Please fill out this form using the link provided.'
+					})
+				});
+				
+				addToast({
+					message: `Email sent to ${singleEmailAddress.trim()}`,
+					type: 'success',
+					timeout: 3000
+				});
+				
+				// Clear the email input and hide the input field after successful send
+				singleEmailAddress = '';
+				showEmailInput = false;
+			} catch (error) {
+				console.error('Error sending single email:', error);
+				addToast({
+					message: 'Failed to send email',
+					type: 'error',
+					timeout: 3000
+				});
+			}
+		} else {
+			addToast({
+				message: 'Please enter a valid email address',
+				type: 'error',
+				timeout: 3000
+			});
 		}
 	}
 </script>
@@ -117,3 +470,277 @@
 		</div>
 	</div>
 </div>
+
+<!-- Share Form Modal -->
+{#if showShareModal}
+	<div 
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" 
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="modal-title"
+		tabindex="-1"
+		onkeydown={(e) => e.key === 'Escape' && closeModal()}
+	>
+		<button 
+			class="absolute inset-0 w-full h-full bg-transparent"
+			onclick={closeModal}
+			aria-label="Close modal"
+		></button>
+		<div 
+			class="relative bg-white rounded-xl shadow-2xl w-[90vw] max-w-[800px] h-[85vh] mx-4 flex flex-col"
+		>
+			<!-- Modal Header -->
+			<div class="p-6 border-b border-gray-200 flex-shrink-0">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-3">
+						<Icon icon="lucide:share" class="w-6 h-6 text-blue-600" />
+						<h3 id="modal-title" class="text-xl font-semibold text-gray-900">Share submission link</h3>
+					</div>
+					<button
+						onclick={closeModal}
+						class="p-2 hover:bg-gray-100 rounded-full transition-colors"
+						aria-label="Close modal"
+					>
+						<Icon icon="lucide:x" class="w-5 h-5 text-gray-500" />
+					</button>
+				</div>
+			</div>
+			
+			<!-- Modal Body -->
+			<div class="p-6 flex-1 flex flex-col overflow-y-auto">
+				<!-- Expiration Settings -->
+				<div class="mb-6">
+					<label for="expiration-value" class="block text-sm font-medium text-gray-500 mb-3">Expires in</label>
+					<div class="flex items-center gap-3">
+						<input
+							id="expiration-value"
+							type="number"
+							bind:value={expirationValue}
+							min="1"
+							class="w-20 px-3 py-2 border border-primary rounded-lg text-gray-500 "
+						/>
+						<select
+							bind:value={expirationUnit}
+							class="px-3 py-2 border border-primary rounded-lg text-gray-500 "
+						>
+							<option value="Minutes">Minutes</option>
+							<option value="Hours">Hours</option>
+							<option value="Days">Days</option>
+							<option value="Weeks">Weeks</option>
+							<option value="Months">Months</option>
+						</select>
+					</div>
+				</div>
+
+				<!-- Share Tabs -->
+				<div class="mb-6">
+					<div class="flex border-b border-gray-200">
+						<button
+							onclick={() => shareTab = 'one'}
+							class="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors {shareTab === 'one' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}"
+						>
+							<Icon icon="lucide:user" class="w-4 h-4" />
+							Share to One
+						</button>
+						<button
+							onclick={() => shareTab = 'many'}
+							class="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors {shareTab === 'many' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}"
+						>
+							<Icon icon="lucide:users" class="w-4 h-4" />
+							Share to Many
+						</button>
+					</div>
+				</div>
+
+				<!-- Share to One Section -->
+				{#if shareTab === 'one'}
+					<div class="flex-1 flex flex-col">
+						<!-- Single Link Option -->
+						<div class="mb-6">
+							<div class="flex items-center gap-3 mb-4">
+								<input
+									type="radio"
+									id="single-link"
+									bind:group={linkType}
+									value="single"
+									class="w-4 h-4 text-blue-600"
+								/>
+								<label for="single-link" class="text-sm font-medium text-gray-700">Single Link</label>
+							</div>
+							
+							{#if linkType === 'single'}
+								<div class="space-y-4">
+									<div class="flex items-center gap-3">
+										<input
+											type="text"
+											bind:value={link}
+											readonly
+											class="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+											placeholder="Generated link will appear here..."
+										/>
+										<button
+											onclick={generateSingleLink}
+											class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+										>
+											Generate
+										</button>
+									</div>
+									
+									{#if link}
+										<div class="flex items-center gap-2">
+											<button
+												onclick={copyToClipboard}
+												class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+												title="Copy link"
+											>
+												<Icon icon="lucide:copy" class="w-4 h-4 text-gray-600" />
+											</button>
+											<button
+												onclick={openLink}
+												class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+												title="Open link"
+											>
+												<Icon icon="lucide:external-link" class="w-4 h-4 text-gray-600" />
+											</button>
+											<button
+												onclick={() => showEmailInput = !showEmailInput}
+												class="p-2 hover:bg-gray-100 rounded-lg transition-colors {showEmailInput ? 'bg-blue-100' : ''}"
+												title="Email link"
+											>
+												<Icon icon="lucide:mail" class="w-4 h-4 text-gray-600" />
+											</button>
+										</div>
+										
+										<!-- Email Input for Single Share -->
+										{#if showEmailInput}
+											<div class="mt-4">
+												<label for="single-email" class="block text-sm font-medium text-gray-700 mb-2">Send link via email</label>
+												<div class="flex items-center gap-2">
+													<input
+														id="single-email"
+														type="email"
+														bind:value={singleEmailAddress}
+														placeholder="Enter email address..."
+														class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+													/>
+													<button
+														onclick={sendSingleEmail}
+														class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+														disabled={!singleEmailAddress.trim()}
+													>
+														Send
+													</button>
+												</div>
+											</div>
+										{/if}
+										
+										<!-- QR Code -->
+										{#if showQRCode && qrCodeDataUrl}
+											<div class="flex justify-center">
+												<div class="border-2 border-dashed border-gray-300 p-4 rounded-lg">
+													<img 
+														src={qrCodeDataUrl} 
+														alt="QR Code" 
+														class="w-32 h-32 object-contain"
+													/>
+												</div>
+											</div>
+										{/if}
+									{/if}
+								</div>
+							{/if}
+						</div>
+
+						<!-- Multiple Links Option -->
+						<div>
+							<div class="flex items-center gap-3 mb-4">
+								<input
+									type="radio"
+									id="multiple-links"
+									bind:group={linkType}
+									value="multiple"
+									class="w-4 h-4 text-blue-600"
+								/>
+								<label for="multiple-links" class="text-sm font-medium text-gray-700">Multiple Links</label>
+							</div>
+							
+							{#if linkType === 'multiple'}
+								<div class="space-y-4">
+									<div class="flex items-center gap-3">
+										<input
+											type="number"
+											bind:value={multipleLinkCount}
+											min="1"
+											max="100"
+											class="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+										/>
+										<button
+											onclick={generateMultipleLinks}
+											class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+										>
+											Generate
+										</button>
+									</div>
+									
+									{#if generatedLinks.length > 0}
+										<div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+											<div class="space-y-2">
+												{#each generatedLinks as generatedLink, index}
+													<div class="text-sm text-gray-700 break-all">
+														{generatedLink}
+													</div>
+												{/each}
+											</div>
+										</div>
+										
+										<div class="flex items-center gap-2">
+											<button
+												onclick={copyAllLinks}
+												class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+												title="Copy all links"
+											>
+												<Icon icon="lucide:copy" class="w-4 h-4 text-gray-600" />
+											</button>
+											<button
+												onclick={sendEmailLinks}
+												class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+												title="Email links"
+											>
+												<Icon icon="lucide:mail" class="w-4 h-4 text-gray-600" />
+											</button>
+										</div>
+									{/if}
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Share to Many Section -->
+				{#if shareTab === 'many'}
+					<div class="flex-1 flex flex-col">
+						<div class="mb-4">
+							<label for="email-addresses" class="block text-sm font-medium text-gray-700 mb-2">Add / Paste email addresses here</label>
+							<textarea
+								id="email-addresses"
+								bind:value={emailAddresses}
+								placeholder="Enter email addresses separated by commas..."
+								class="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+							></textarea>
+						</div>
+						
+						<div class="flex items-center gap-2">
+							<button
+								onclick={sendEmailLinks}
+								class="p-2 rounded-lg transition-colors bg-primary"
+								title="Send email"
+							>
+								<Icon icon="material-symbols:send" class="w-5 h-5 text-foreground" />
+							</button>
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
