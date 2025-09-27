@@ -1,18 +1,9 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
 	import { IndexedDbStorageManager } from '$lib/utils/indexdb.store.manager';
+	import { addToast } from '$lib/components/toast/toast.store';
 
-	let { formData, userId, templateId }: {
-		formData: {
-			title: string;
-			created: string;
-			lastModified: string;
-			status: string;
-			questions: number;
-		};
-		userId: string;
-		templateId: string;
-	} = $props();
+	let { formData, userId, templateId } = $props();
 
 	let activeTab = $state('');
 	let showShareModal = $state(false);
@@ -20,6 +11,17 @@
 	let copied = $state(false);
 	let qrCodeDataUrl = $state('');
 	let showQRCode = $state(false);
+	
+	// New share modal state
+	let shareTab = $state('one'); // 'one' or 'many'
+	let expirationValue = $state(10);
+	let expirationUnit = $state('Days');
+	let linkType = $state('single'); // 'single' or 'multiple'
+	let multipleLinkCount = $state(10);
+	let emailAddresses = $state('');
+	let singleEmailAddress = $state('');
+	let showEmailInput = $state(false);
+	let generatedLinks = $state([]);
 
 	const tabs = [
 		{ id: 'edit', label: 'Edit Form', icon: 'lucide:edit' },
@@ -60,10 +62,17 @@
 			await navigator.clipboard.writeText(link);
 			copied = true;
 			setTimeout(() => (copied = false), 2000);
-			// You could add a toast notification here
-			alert('Link copied to clipboard!');
+			addToast({
+				message: 'Link copied to clipboard!',
+				type: 'success',
+				timeout: 3000
+			});
 		} catch (error) {
-			alert('Failed to copy link');
+			addToast({
+				message: 'Failed to copy link',
+				type: 'error',
+				timeout: 3000
+			});
 		}
 	}
 
@@ -104,22 +113,37 @@
 				}
 			}
 
-			const response = await fetch(`/api/server/submission`, {
+			// Use the new share link API
+			const response = await fetch('/api/server/share-link', {
 				method: 'POST',
-				body: JSON.stringify({ FormTemplateId: templateId }),
-				headers: { 'Content-Type': 'application/json' }
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					formId: templateId,
+					shareType: 'single',
+					expiresInValue: 7,
+					expiresInUnit: 'days',
+				})
 			});
+			
 			const result = await response.json();
-			if (result.HttpCode === 201 || result.State === 'success') {
-				link = result?.Data?.Link;
+			if (result.HttpCode === 201) {
+				link = result.Data.shareUrl;
 				// Generate QR code for the link
 				await generateQRCode(link);
 			} else {
-				alert('Failed to generate link');
+				addToast({
+					message: 'Failed to generate link',
+					type: 'error',
+					timeout: 3000
+				});
 			}
 		} catch (error) {
 			console.error('Submission Error:', error);
-			alert('Error generating link');
+			addToast({
+				message: 'Error generating link',
+				type: 'error',
+				timeout: 3000
+			});
 			return null;
 		}
 	};
@@ -137,6 +161,16 @@
 		link = '';
 		qrCodeDataUrl = '';
 		showQRCode = false;
+		// Reset new share modal state
+		shareTab = 'one';
+		expirationValue = 10;
+		expirationUnit = 'Days';
+		linkType = 'single';
+		multipleLinkCount = 10;
+		emailAddresses = '';
+		singleEmailAddress = '';
+		showEmailInput = false;
+		generatedLinks = [];
 	}
 
 	// Simple QR code generation using a free API
@@ -148,18 +182,210 @@
 			showQRCode = true;
 		} catch (error) {
 			console.error('Error generating QR code:', error);
-			alert('Failed to generate QR code');
+			addToast({
+				message: 'Failed to generate QR code',
+				type: 'error',
+				timeout: 3000
+			});
 		}
 	}
 
-	function downloadQRCode() {
-		if (qrCodeDataUrl) {
-			const link = document.createElement('a');
-			link.href = qrCodeDataUrl;
-			link.download = `form-qr-code-${templateId}.png`;
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
+	// New functions for enhanced share functionality
+	async function generateSingleLink() {
+		try {
+			const response = await fetch('/api/server/share-link', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					formId: templateId,
+					shareType: 'single',
+					expiresInValue: expirationValue,
+					expiresInUnit: expirationUnit.toLowerCase(),
+				})
+			});
+			
+			const result = await response.json();
+			if (result.HttpCode === 201) {
+				link = result.Data.shareUrl;
+				await generateQRCode(link);
+			} else {
+				addToast({
+					message: 'Failed to generate link',
+					type: 'error',
+					timeout: 3000
+				});
+			}
+		} catch (error) {
+			console.error('Error generating single link:', error);
+			addToast({
+				message: 'Error generating single link',
+				type: 'error',
+				timeout: 3000
+			});
+		}
+	}
+
+	async function generateMultipleLinks() {
+		try {
+			const response = await fetch('/api/server/share-link', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					formId: templateId,
+					shareType: 'multiple',
+					expiresInValue: expirationValue,
+					expiresInUnit: expirationUnit.toLowerCase(),
+					multipleLinksCount: multipleLinkCount,
+				})
+			});
+			
+			const result = await response.json();
+			if (result.HttpCode === 201) {
+				generatedLinks = result.Data.multipleUrls || [];
+			} else {
+				addToast({
+					message: 'Failed to generate multiple links',
+					type: 'error',
+					timeout: 3000
+				});
+			}
+		} catch (error) {
+			console.error('Error generating multiple links:', error);
+			addToast({
+				message: 'Error generating multiple links',
+				type: 'error',
+				timeout: 3000
+			});
+		}
+	}
+
+	async function copyAllLinks() {
+		if (generatedLinks.length > 0) {
+			try {
+				await navigator.clipboard.writeText(generatedLinks.join('\n'));
+				copied = true;
+				setTimeout(() => (copied = false), 2000);
+				addToast({
+					message: 'All links copied to clipboard!',
+					type: 'success',
+					timeout: 3000
+				});
+			} catch (error) {
+				addToast({
+					message: 'Failed to copy links',
+					type: 'error',
+					timeout: 3000
+				});
+			}
+		}
+	}
+
+	async function sendEmailLinks() {
+		if (emailAddresses.trim()) {
+			const emails = emailAddresses.split(',').map(email => email.trim()).filter(email => email);
+			if (emails.length > 0) {
+				try {
+					// Create share link with email list
+					const response = await fetch('/api/server/share-link', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							formId: templateId,
+							shareType: 'single',
+							expiresInValue: expirationValue,
+							expiresInUnit: expirationUnit.toLowerCase(),
+							emailList: emailAddresses,
+						})
+					});
+					
+					const result = await response.json();
+					if (result.HttpCode === 201) {
+						// Send email with the link
+						await sendEmailWithLink(result.Data.shareUrl, emails);
+						addToast({
+							message: `Email sent to ${emails.length} recipients`,
+							type: 'success',
+							timeout: 3000
+						});
+					} else {
+						addToast({
+							message: 'Failed to create share link',
+							type: 'error',
+							timeout: 3000
+						});
+					}
+				} catch (error) {
+					console.error('Error sending email links:', error);
+					addToast({
+						message: 'Error sending email links',
+						type: 'error',
+						timeout: 3000
+					});
+				}
+			}
+		} else {
+			addToast({
+				message: 'Please enter email addresses',
+				type: 'error',
+				timeout: 3000
+			});
+		}
+	}
+
+	async function sendEmailWithLink(shareUrl: string, emails: string[]) {
+		try {
+			for (const email of emails) {
+				await fetch('/api/server/share-link/send-link', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						FormTemplateId: templateId,
+						EmailTo: email,
+						Message: 'Please fill out this form using the link provided.'
+					})
+				});
+			}
+		} catch (error) {
+			console.error('Error sending emails:', error);
+		}
+	}
+
+	async function sendSingleEmail() {
+		if (singleEmailAddress.trim() && link) {
+			try {
+				await fetch('/api/server/share-link/send-link', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						FormTemplateId: templateId,
+						EmailTo: singleEmailAddress.trim(),
+						Message: 'Please fill out this form using the link provided.'
+					})
+				});
+				
+				addToast({
+					message: `Email sent to ${singleEmailAddress.trim()}`,
+					type: 'success',
+					timeout: 3000
+				});
+				
+				// Clear the email input and hide the input field after successful send
+				singleEmailAddress = '';
+				showEmailInput = false;
+			} catch (error) {
+				console.error('Error sending single email:', error);
+				addToast({
+					message: 'Failed to send email',
+					type: 'error',
+					timeout: 3000
+				});
+			}
+		} else {
+			addToast({
+				message: 'Please enter a valid email address',
+				type: 'error',
+				timeout: 3000
+			});
 		}
 	}
 </script>
@@ -211,16 +437,14 @@
 			aria-label="Close modal"
 		></button>
 		<div 
-			class="relative bg-white rounded-xl shadow-2xl w-[90vw] max-w-[700px] h-[85vh] mx-4 flex flex-col"
+			class="relative bg-white rounded-xl shadow-2xl w-[90vw] max-w-[800px] h-[85vh] mx-4 flex flex-col"
 		>
 			<!-- Modal Header -->
 			<div class="p-6 border-b border-gray-200 flex-shrink-0">
 				<div class="flex items-center justify-between">
-					<div>
-						<h3 id="modal-title" class="text-xl font-semibold text-gray-900">Share Form Template</h3>
-						<p class="text-sm text-gray-600 mt-1">
-							Generate a shareable link and QR code for your form template
-						</p>
+					<div class="flex items-center gap-3">
+						<Icon icon="lucide:share" class="w-6 h-6 text-blue-600" />
+						<h3 id="modal-title" class="text-xl font-semibold text-gray-900">Share submission link</h3>
 					</div>
 					<button
 						onclick={closeModal}
@@ -233,100 +457,239 @@
 			</div>
 			
 			<!-- Modal Body -->
-			<div class="p-6 flex flex-col">
-				<!-- Link Generation Section -->
-				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-2">Shareable Link</label>
-					<div class="flex w-full items-center gap-3">
-						<div class="relative flex-1">
-							<input
-								type="text"
-								bind:value={link}
-								readonly
-								class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-								placeholder="Click 'Generate Link' to create a shareable link..."
-							/>
-							<button
-								onclick={copyToClipboard}
-								class="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-200 rounded-lg transition-colors"
-								title="Copy to clipboard"
-								disabled={!link}
-							>
-								<Icon 
-									icon={copied ? 'material-symbols:check-circle-rounded' : 'ion:copy-outline'} 
-									class="w-5 h-5 {copied ? 'text-green-600' : 'text-gray-600'}"
-								/>
-							</button>
-						</div>
-						<button
-							onclick={() => createLink(templateId)}
-							class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-medium"
+			<div class="p-6 flex-1 flex flex-col overflow-y-auto">
+				<!-- Expiration Settings -->
+				<div class="mb-6">
+					<label for="expiration-value" class="block text-sm font-medium text-gray-500 mb-3">Expires in</label>
+					<div class="flex items-center gap-3">
+						<input
+							id="expiration-value"
+							type="number"
+							bind:value={expirationValue}
+							min="1"
+							class="w-20 px-3 py-2 border border-primary rounded-lg text-gray-500 "
+						/>
+						<select
+							bind:value={expirationUnit}
+							class="px-3 py-2 border border-primary rounded-lg text-gray-500 "
 						>
-							<Icon icon="lucide:link" class="w-4 h-4 inline mr-2" />
-							Generate Link
+							<option value="Minutes">Minutes</option>
+							<option value="Hours">Hours</option>
+							<option value="Days">Days</option>
+							<option value="Weeks">Weeks</option>
+							<option value="Months">Months</option>
+						</select>
+					</div>
+				</div>
+
+				<!-- Share Tabs -->
+				<div class="mb-6">
+					<div class="flex border-b border-gray-200">
+						<button
+							onclick={() => shareTab = 'one'}
+							class="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors {shareTab === 'one' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}"
+						>
+							<Icon icon="lucide:user" class="w-4 h-4" />
+							Share to One
+						</button>
+						<button
+							onclick={() => shareTab = 'many'}
+							class="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors {shareTab === 'many' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}"
+						>
+							<Icon icon="lucide:users" class="w-4 h-4" />
+							Share to Many
 						</button>
 					</div>
 				</div>
 
-				<!-- QR Code Section -->
-				{#if showQRCode && qrCodeDataUrl}
-					<div class="flex flex-col items-center space-y-4">
-						<div class="text-center">
-							<h4 class="text-lg font-medium text-gray-800 mb-2">QR Code for Easy Sharing</h4>
-							<p class="text-sm text-gray-600">Scan this QR code to quickly access the form</p>
+				<!-- Share to One Section -->
+				{#if shareTab === 'one'}
+					<div class="flex-1 flex flex-col">
+						<!-- Single Link Option -->
+						<div class="mb-6">
+							<div class="flex items-center gap-3 mb-4">
+								<input
+									type="radio"
+									id="single-link"
+									bind:group={linkType}
+									value="single"
+									class="w-4 h-4 text-blue-600"
+								/>
+								<label for="single-link" class="text-sm font-medium text-gray-700">Single Link</label>
+							</div>
+							
+							{#if linkType === 'single'}
+								<div class="space-y-4">
+									<div class="flex items-center gap-3">
+										<input
+											type="text"
+											bind:value={link}
+											readonly
+											class="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+											placeholder="Generated link will appear here..."
+										/>
+										<button
+											onclick={generateSingleLink}
+											class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+										>
+											Generate
+										</button>
+									</div>
+									
+									{#if link}
+										<div class="flex items-center gap-2">
+											<button
+												onclick={copyToClipboard}
+												class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+												title="Copy link"
+											>
+												<Icon icon="lucide:copy" class="w-4 h-4 text-gray-600" />
+											</button>
+											<button
+												onclick={openLink}
+												class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+												title="Open link"
+											>
+												<Icon icon="lucide:external-link" class="w-4 h-4 text-gray-600" />
+											</button>
+											<button
+												onclick={() => showEmailInput = !showEmailInput}
+												class="p-2 hover:bg-gray-100 rounded-lg transition-colors {showEmailInput ? 'bg-blue-100' : ''}"
+												title="Email link"
+											>
+												<Icon icon="lucide:mail" class="w-4 h-4 text-gray-600" />
+											</button>
+										</div>
+										
+										<!-- Email Input for Single Share -->
+										{#if showEmailInput}
+											<div class="mt-4">
+												<label for="single-email" class="block text-sm font-medium text-gray-700 mb-2">Send link via email</label>
+												<div class="flex items-center gap-2">
+													<input
+														id="single-email"
+														type="email"
+														bind:value={singleEmailAddress}
+														placeholder="Enter email address..."
+														class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+													/>
+													<button
+														onclick={sendSingleEmail}
+														class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+														disabled={!singleEmailAddress.trim()}
+													>
+														Send
+													</button>
+												</div>
+											</div>
+										{/if}
+										
+										<!-- QR Code -->
+										{#if showQRCode && qrCodeDataUrl}
+											<div class="flex justify-center">
+												<div class="border-2 border-dashed border-gray-300 p-4 rounded-lg">
+													<img 
+														src={qrCodeDataUrl} 
+														alt="QR Code" 
+														class="w-32 h-32 object-contain"
+													/>
+												</div>
+											</div>
+										{/if}
+									{/if}
+								</div>
+							{/if}
 						</div>
-						<div class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200 shadow-sm">
-							<img 
-								src={qrCodeDataUrl} 
-								alt="QR Code for form link" 
-								class="w-48 h-48 object-contain"
-								onerror={(e) => (e.target as HTMLImageElement).style.display = 'none'}
-							/>
-						</div>
-						<div class="flex gap-3">
-							<button
-								onclick={downloadQRCode}
-								class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors font-medium"
-							>
-								<Icon icon="lucide:download" class="w-4 h-4 inline mr-2" />
-								Download QR
-							</button>
-							<button
-								onclick={() => navigator.clipboard.writeText(link)}
-								class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors font-medium"
-							>
-								<Icon icon="lucide:copy" class="w-4 h-4 inline mr-2" />
-								Copy Link
-							</button>
-						</div>
-					</div>
-				{:else}
-					<div class="flex-1 flex items-center justify-center">
-						<div class="text-center text-gray-500">
-							<Icon icon="lucide:qr-code" class="w-16 h-16 mx-auto mb-4 text-gray-300" />
-							<p class="text-lg font-medium">QR Code will appear here</p>
-							<p class="text-sm">Generate a link first to see the QR code</p>
+
+						<!-- Multiple Links Option -->
+						<div>
+							<div class="flex items-center gap-3 mb-4">
+								<input
+									type="radio"
+									id="multiple-links"
+									bind:group={linkType}
+									value="multiple"
+									class="w-4 h-4 text-blue-600"
+								/>
+								<label for="multiple-links" class="text-sm font-medium text-gray-700">Multiple Links</label>
+							</div>
+							
+							{#if linkType === 'multiple'}
+								<div class="space-y-4">
+									<div class="flex items-center gap-3">
+										<input
+											type="number"
+											bind:value={multipleLinkCount}
+											min="1"
+											max="100"
+											class="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+										/>
+										<button
+											onclick={generateMultipleLinks}
+											class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+										>
+											Generate
+										</button>
+									</div>
+									
+									{#if generatedLinks.length > 0}
+										<div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+											<div class="space-y-2">
+												{#each generatedLinks as generatedLink, index}
+													<div class="text-sm text-gray-700 break-all">
+														{generatedLink}
+													</div>
+												{/each}
+											</div>
+										</div>
+										
+										<div class="flex items-center gap-2">
+											<button
+												onclick={copyAllLinks}
+												class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+												title="Copy all links"
+											>
+												<Icon icon="lucide:copy" class="w-4 h-4 text-gray-600" />
+											</button>
+											<button
+												onclick={sendEmailLinks}
+												class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+												title="Email links"
+											>
+												<Icon icon="lucide:mail" class="w-4 h-4 text-gray-600" />
+											</button>
+										</div>
+									{/if}
+								</div>
+							{/if}
 						</div>
 					</div>
 				{/if}
-			</div>
-			
-			<!-- Modal Footer -->
-			<div class="flex justify-end gap-3 p-2 border-t border-gray-200 flex-shrink-0">
-				<button
-					onclick={closeModal}
-					class="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors font-medium"
-				>
-					Close
-				</button>
-				<button
-					onclick={openLink}
-					disabled={!link}
-					class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-				>
-					<Icon icon="lucide:external-link" class="w-4 h-4 inline mr-2" />
-					Open Link
-				</button>
+
+				<!-- Share to Many Section -->
+				{#if shareTab === 'many'}
+					<div class="flex-1 flex flex-col">
+						<div class="mb-4">
+							<label for="email-addresses" class="block text-sm font-medium text-gray-700 mb-2">Add / Paste email addresses here</label>
+							<textarea
+								id="email-addresses"
+								bind:value={emailAddresses}
+								placeholder="Enter email addresses separated by commas..."
+								class="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+							></textarea>
+						</div>
+						
+						<div class="flex items-center gap-2">
+							<button
+								onclick={sendEmailLinks}
+								class="p-2 rounded-lg transition-colors bg-primary"
+								title="Send email"
+							>
+								<Icon icon="material-symbols:send" class="w-5 h-5 text-foreground" />
+							</button>
+						</div>
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>
