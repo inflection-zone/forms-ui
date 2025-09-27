@@ -33,8 +33,8 @@
 	const templateId = atob(encodedTemplateId);
 
 	let storage = new IndexedDbStorageManager('templates', 'template_list');
-	const STORAGE_KEY = `Submission`;
-	const SESSION_KEY = `sessionId`;
+	const STORAGE_KEY = `Submission_${id}`; // Make storage key unique for each submission link
+	const SESSION_KEY = `sessionId_${id}`; // Make session key unique as well
 	const db = new IndexedDB<{ id: string; payload: any }>('form-submissions', 'unsaved_answers');
 
 	onMount(() => {
@@ -296,101 +296,149 @@
 
 			const syncOfflineData = async () => {
 				const cachedData = await db.getAll();
-				const cachedSubmit = cachedData.find((item) => item.id === `${STORAGE_KEY}`)?.payload;
-
-				if (cachedSubmit?.intentToSubmit) {
-					console.log('Back online: auto-submitting cached submission...');
-					const formData = cachedSubmit.FormData;
-					answers = formData;
-
-					// Ensure templateInfo is loaded before proceeding
-					if (!templateInfo || !Array.isArray(templateInfo) || templateInfo.length === 0) {
-						console.log('Template not loaded yet, waiting...');
-						// Wait a bit and try again
-						setTimeout(() => {
-							syncOfflineData();
-						}, 1000);
-						return;
-					}
-
-					// First create a submission for offline forms
-					let submissionId = null;
-					let encryptedKey = null;
-					try {
-						const createSubmissionRes = await fetch('/api/server/submission', {
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({
-								FormTemplateId: templateId
-							})
-						});
+				// Find all submissions that need to be submitted (not just the current one)
+				const submissionsToSync = cachedData.filter((item) => item.payload?.intentToSubmit);
+				
+				if (submissionsToSync.length > 0) {
+					console.log(`Back online: auto-submitting ${submissionsToSync.length} cached submission(s)...`);
+					
+					// Process each submission that needs to be synced
+					for (const cachedSubmit of submissionsToSync) {
+						const formData = cachedSubmit.payload.FormData;
+						const submissionToken = cachedSubmit.payload.Token;
+						const submissionTimestamp = cachedSubmit.payload.submissionTimestamp;
 						
-						const createSubmissionData = await createSubmissionRes.json();
-						console.log('Create submission response:', createSubmissionData);
+						console.log(`Processing submission with token: ${submissionToken}`);
 						
-						if (createSubmissionData.Status === 'success' && createSubmissionData.Data?.id) {
-							submissionId = createSubmissionData.Data.id;
-							encryptedKey = createSubmissionData.Data.Encrypted;
-							console.log('Created submission ID:', submissionId);
-							console.log('Created encrypted key:', encryptedKey);
-						} else {
-							throw new Error('Failed to create submission');
+						// Parse the submission token to get template info
+						const tokens = submissionToken.split('-');
+						if (tokens.length < 3) {
+							console.error('Invalid submission token format:', submissionToken);
+							continue;
 						}
-					} catch (err) {
-						console.error('Error creating submission:', err);
-						addToast({
-							message: 'Failed to create submission. Please try again.',
-							type: 'error',
-							timeout: 3000
-						});
-						return;
-					}
-
-					// Now save the question responses with the proper submission ID
-					const saveSuccess = await handleSave({ preventDefault: () => {} }, false, submissionId, encryptedKey);
-
-
-					if (saveSuccess) {
+						const submissionCode = tokens[1];
+						const encodedTemplateId = tokens[2];
+						const submissionTemplateId = atob(encodedTemplateId);
+						
+						// Load template for this specific submission
+						let submissionTemplateInfo = null;
 						try {
-							console.log('Submitting form with encrypted key:', encryptedKey);
-							console.log('Submit request body:', JSON.stringify({
-								submissionKey: encryptedKey,
-								FormData: formData
-							}, null, 2));
+							const storedTemplate = await storage.get(submissionTemplateId);
+							const parsedTemplate = typeof storedTemplate === 'string' ? JSON.parse(storedTemplate) : storedTemplate;
+							if (parsedTemplate?.FormSections) {
+								submissionTemplateInfo = parsedTemplate.FormSections[0].Subsections;
+							} else if (parsedTemplate?.Data) {
+								submissionTemplateInfo = parsedTemplate.Data.FormSections[0].Subsections;
+							}
+						} catch (err) {
+							console.error('Failed to load template for submission:', submissionToken, err);
+							continue;
+						}
 
-							const res = await fetch('/api/server/submit', {
+						if (!submissionTemplateInfo || !Array.isArray(submissionTemplateInfo) || submissionTemplateInfo.length === 0) {
+							console.error('Template info not available for submission:', submissionToken);
+							continue;
+						}
+
+						// Only update current form's answers if this is the current submission
+						if (cachedSubmit.id === STORAGE_KEY) {
+							answers = formData;
+						}
+
+						// First create a submission for offline forms
+						let submissionId = null;
+						let encryptedKey = null;
+						try {
+							const createSubmissionRes = await fetch('/api/server/submission', {
 								method: 'POST',
 								headers: { 'Content-Type': 'application/json' },
 								body: JSON.stringify({
-									submissionKey: encryptedKey, // Use the encrypted key, not submission ID,
+									FormTemplateId: submissionTemplateId
+								})
+							});
+							
+							const createSubmissionData = await createSubmissionRes.json();
+							console.log('Create submission response:', createSubmissionData);
+							
+							if (createSubmissionData.Status === 'success' && createSubmissionData.Data?.id) {
+								submissionId = createSubmissionData.Data.id;
+								encryptedKey = createSubmissionData.Data.Encrypted;
+								console.log('Created submission ID:', submissionId);
+								console.log('Created encrypted key:', encryptedKey);
+							} else {
+								throw new Error('Failed to create submission');
+							}
+						} catch (err) {
+							console.error('Error creating submission:', err);
+							addToast({
+								message: `Failed to create submission for ${submissionToken}. Please try again.`,
+								type: 'error',
+								timeout: 3000
+							});
+							continue;
+						}
+
+						// Create question responses for this submission
+						try {
+							const questionResponses = await questionResponseModels(
+								submissionTemplateInfo,
+								formData,
+								submissionId,
+								submissionTemplateId,
+								null
+							);
+
+							console.log('Question responses created:', JSON.stringify(questionResponses, null, 2));
+
+							const saveRes = await fetch('/api/server/question-response', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									questionResponses,
+									formSubmissionKey: encryptedKey,
 									FormData: formData
 								})
 							});
 
-							const submissionData = await res.json();
-							toastMessage(submissionData);
+							const saveData = await saveRes.json();
+							console.log('Data saved:', saveData);
 
-							if (!submissionData?.message) {
-								addToast({
-									message: 'Submission successful after reconnecting.',
-									type: 'success',
-									timeout: 3000
-								});
-								await db.delete(STORAGE_KEY);
-								console.log('IndexedDB cleared after sync.');
-							}
-						} catch (err) {
-							console.error('Network lost during sync:', err);
-							await db.add({
-								id: STORAGE_KEY,
-								payload: {
-									intentToSubmit: true,
-									Token: id, // Use the original URL parameter instead of templateId,
-									FormData: formData
-								}
+							// Now submit the form
+							console.log('Submitting form with encrypted key:', encryptedKey);
+							const submitRes = await fetch('/api/server/submit', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									submissionKey: encryptedKey,
+									FormData: formData,
+									submissionTimestamp
+								})
 							});
+
+							const submissionData = await submitRes.json();
+							console.log('Submission successful for:', submissionToken, submissionData);
+							
+							// Remove this submission from IndexedDB after successful sync
+							await db.delete(cachedSubmit.id);
+							console.log('Removed synced submission from IndexedDB:', cachedSubmit.id);
+
+							// Show success message only for current form
+							if (cachedSubmit.id === STORAGE_KEY) {
+								toastMessage(submissionData);
+								if (!submissionData?.message) {
+									addToast({
+										message: 'Submission successful after reconnecting.',
+										type: 'success',
+										timeout: 3000
+									});
+								}
+							}
+
+						} catch (err) {
+							console.error('Network lost during sync for submission:', submissionToken, err);
+							// Keep the submission in IndexedDB for retry later
 							addToast({
-								message: 'Network lost again during sync. Unsynced data retained.',
+								message: `Network lost during sync for submission ${submissionToken}. Will retry later.`,
 								type: 'error',
 								timeout: 4000
 							});
@@ -403,23 +451,44 @@
 				invalidate('app:allNodes');
 			};
 
-			window.addEventListener('online', syncOfflineData);
-			return () => {
-				window.removeEventListener('online', syncOfflineData);
-			};
+			// Note: Global sync is now handled in +layout.svelte
+			// Individual page sync is disabled to prevent conflicts
+			// window.addEventListener('online', syncOfflineData);
+			// return () => {
+			// 	window.removeEventListener('online', syncOfflineData);
+			// };
 		}
 	});
 
 	async function syncAnswersToIndexedDB() {
+		// Get existing data first to preserve important flags
+		const existingData = await db.getAll();
+		const currentSubmission = existingData.find((item) => item.id === STORAGE_KEY);
+		
+		// Preserve intentToSubmit and other submission-related data
+		const preservedData = currentSubmission?.payload || {};
+		
+		// If submission is already marked for offline submission, don't overwrite it
+		if (preservedData.intentToSubmit) {
+			console.log('🔄 OFFLINE FORM: Skipping sync - submission already marked for offline sync');
+			return;
+		}
+		
 		await db.delete(STORAGE_KEY);
 		await db.add({
 			id: STORAGE_KEY,
 			payload: {
-				FormData: structuredCloneSafe(answers)
+				...preservedData, // Preserve existing submission data
+				FormData: structuredCloneSafe(answers) // Update form data
 			}
 		});
 
-		console.log('Answers synced with IndexedDB:', answers);
+		console.log('Answers synced with IndexedDB (preserving submission intent):', {
+			answers,
+			preservedIntentToSubmit: preservedData.intentToSubmit,
+			preservedToken: preservedData.Token,
+			preservedTimestamp: preservedData.submissionTimestamp
+		});
 	}
 	$effect(() => {
 		syncAnswersToIndexedDB();
