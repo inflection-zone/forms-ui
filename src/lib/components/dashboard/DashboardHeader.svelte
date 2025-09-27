@@ -3,6 +3,7 @@
 	import { IndexedDbStorageManager } from '$lib/utils/indexdb.store.manager';
 	import { addToast } from '$lib/components/toast/toast.store';
 	import { Helper } from '$lib/utils/helper';
+	import { goto } from '$app/navigation';
 
 	let { formData, userId, templateId } = $props();
 
@@ -183,11 +184,7 @@
 				// Update local state
 				isFavourite = newFavoriteStatus;
 				
-				// Show success message
-				alert(result.message || `Form ${newFavoriteStatus ? 'added to' : 'removed from'} favorites!`);
-			} else {
-				// Show error message
-				alert(result.message || 'Failed to update favorite status');
+								// alert(result.message || 'Failed to update favorite status');
 			}
 		} catch (error) {
 			console.error('Error toggling favorite:', error);
@@ -495,7 +492,7 @@
 						<div class="relative">
 							<button
 								class="p-2 hover:bg-accent rounded-md transition-colors"
-								onclick={() => window.location.href = `/users/${userId}/form-templates/${templateId}/preview`}
+								onclick={() => goto(`/users/${userId}/form-templates/${templateId}/preview`)}
 								title="Preview Form"
 								onmouseenter={() => (showPreviewTooltip = true)}
 								onmouseleave={() => (showPreviewTooltip = false)}

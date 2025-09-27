@@ -327,11 +327,15 @@
                 <Breadcrumb.Root>
                     <Breadcrumb.List class="flex">
                         <Breadcrumb.Item>
-                            <Breadcrumb.Link href="/users/{userId}/form-templates">Templates</Breadcrumb.Link>
+                            <Breadcrumb.Link href="/users/{userId}/form-templates">Form Templates</Breadcrumb.Link>
                         </Breadcrumb.Item>
                         <Breadcrumb.Separator />
                         <Breadcrumb.Item>
-                            <Breadcrumb.Page>Question</Breadcrumb.Page>
+                            <Breadcrumb.Link href="/users/{userId}/form-templates/{parentFormTemplateId}/dashboard">{data.templateInfo.Title || 'Untitled Form'}</Breadcrumb.Link>
+                        </Breadcrumb.Item>
+                        <Breadcrumb.Separator />
+                        <Breadcrumb.Item>
+                            <Breadcrumb.Page>Forms</Breadcrumb.Page>
                         </Breadcrumb.Item>
                     </Breadcrumb.List>
                 </Breadcrumb.Root>

@@ -22,11 +22,15 @@
 	<Breadcrumb.Root>
 		<Breadcrumb.List class="flex">
 			<Breadcrumb.Item>
-				<Breadcrumb.Link href="/users/{userId}/form-templates/{templateId}/dashboard">Form Template</Breadcrumb.Link>
+				<Breadcrumb.Link href="/users/{userId}/form-templates">Form Templates</Breadcrumb.Link>
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator />
 			<Breadcrumb.Item>
-				<Breadcrumb.Page>Form</Breadcrumb.Page>
+				<Breadcrumb.Link href="/users/{userId}/form-templates/{templateId}/dashboard">{templateInfo.Title || 'Untitled Form'}</Breadcrumb.Link>
+			</Breadcrumb.Item>
+			<Breadcrumb.Separator />
+			<Breadcrumb.Item>
+				<Breadcrumb.Page>Preview</Breadcrumb.Page>
 			</Breadcrumb.Item>
 		</Breadcrumb.List>
 	</Breadcrumb.Root>

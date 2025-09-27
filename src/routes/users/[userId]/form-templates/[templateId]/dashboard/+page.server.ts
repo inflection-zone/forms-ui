@@ -21,8 +21,6 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 			throw error(response.HttpCode, response.Message);
 		}
 
-        console.log('Response is ', details);
-		console.log('Submissions are ', submissions);
 		const templateInfo = response.Data;
 		return {
 			templateInfo,
