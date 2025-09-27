@@ -17,14 +17,24 @@ export const createShareLink = async (
 };
 
 // Send link via email
-export const sendLinkViaEmail = async (
+export const sendSingleLinkViaEmail = async (
 	emailData: {
 		FormTemplateId: string;
 		EmailTo: string;
 		Message?: string;
 	}
 ) => {
-	const url = BACKEND_API_URL + `/share-link/send-link`;
+	const url = BACKEND_API_URL + `/share-link/send-single-link`;
 	return await post_(url, emailData);
 };
 
+export const sendMultipleLinkViaEmail = async (
+	emailData: {
+		FormTemplateId: string;
+		EmailList: string;
+		Message?: string;
+	}
+) => {
+	const url = BACKEND_API_URL + `/share-link/send-multiple-link`;
+	return await post_(url, emailData);
+};
