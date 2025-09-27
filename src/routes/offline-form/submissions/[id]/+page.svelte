@@ -121,8 +121,19 @@
 
 
 
-	async function handleSave(e, showToast = true) {
+	// async function handleSave(e, showToast = true) {
+		async function handleSave(e, showToast = true, submissionId = null, encryptedKey = null) {
 		e.preventDefault();
+
+		if (!templateInfo || !Array.isArray(templateInfo) || templateInfo.length === 0) {
+			console.error('templateInfo is not available or empty');
+			addToast({
+				message: 'Template data is not available. Please refresh the page.',
+				type: 'error',
+				timeout: 3000
+			});
+			return false;
+		}
 
 		const schema = createSchema(templateInfo);
 		const validationResult = schema.safeParse(answers);
@@ -147,17 +158,24 @@
 			const questionResponses = await questionResponseModels(
 				templateInfo,
 				answers,
-				code,
+				submissionId || id, // Use submissionId if provided, otherwise fall back to id,
 				templateId,
 				cached
 			);
+
+			console.log('Question responses created:', JSON.stringify(questionResponses, null, 2));
+			console.log('API request body:', JSON.stringify({
+				questionResponses,
+				formSubmissionKey: encryptedKey || id, // Use encrypted key if available, otherwise fall back to original URL parameter
+				FormData: answers
+			}, null, 2));
 
 			const res = await fetch('/api/server/question-response', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					questionResponses,
-					templateId,
+					formSubmissionKey: encryptedKey || id, // Use encrypted key if available, otherwise fall back to original URL parameter,
 					FormData: answers
 				})
 			});
@@ -194,7 +212,7 @@
 					id: STORAGE_KEY,
 					payload: {
 						intentToSubmit: true,
-						Token: templateId,
+						Token: id, // Use the original URL parameter instead of templateId,
 						FormData: structuredCloneSafe(answers),
 						submissionTimestamp
 					}
@@ -226,7 +244,7 @@
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					submissionKey: templateId,
+					submissionKey: id, // Use the original URL parameter instead of templateId,
 					FormData: answers,
 					submissionTimestamp
 				})
@@ -285,15 +303,66 @@
 					const formData = cachedSubmit.FormData;
 					answers = formData;
 
-					const saveSuccess = await handleSave({ preventDefault: () => {} }, false);
+					// Ensure templateInfo is loaded before proceeding
+					if (!templateInfo || !Array.isArray(templateInfo) || templateInfo.length === 0) {
+						console.log('Template not loaded yet, waiting...');
+						// Wait a bit and try again
+						setTimeout(() => {
+							syncOfflineData();
+						}, 1000);
+						return;
+					}
+
+					// First create a submission for offline forms
+					let submissionId = null;
+					let encryptedKey = null;
+					try {
+						const createSubmissionRes = await fetch('/api/server/submission', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								FormTemplateId: templateId
+							})
+						});
+						
+						const createSubmissionData = await createSubmissionRes.json();
+						console.log('Create submission response:', createSubmissionData);
+						
+						if (createSubmissionData.Status === 'success' && createSubmissionData.Data?.id) {
+							submissionId = createSubmissionData.Data.id;
+							encryptedKey = createSubmissionData.Data.Encrypted;
+							console.log('Created submission ID:', submissionId);
+							console.log('Created encrypted key:', encryptedKey);
+						} else {
+							throw new Error('Failed to create submission');
+						}
+					} catch (err) {
+						console.error('Error creating submission:', err);
+						addToast({
+							message: 'Failed to create submission. Please try again.',
+							type: 'error',
+							timeout: 3000
+						});
+						return;
+					}
+
+					// Now save the question responses with the proper submission ID
+					const saveSuccess = await handleSave({ preventDefault: () => {} }, false, submissionId, encryptedKey);
+
 
 					if (saveSuccess) {
 						try {
+							console.log('Submitting form with encrypted key:', encryptedKey);
+							console.log('Submit request body:', JSON.stringify({
+								submissionKey: encryptedKey,
+								FormData: formData
+							}, null, 2));
+
 							const res = await fetch('/api/server/submit', {
 								method: 'POST',
 								headers: { 'Content-Type': 'application/json' },
 								body: JSON.stringify({
-									submissionKey: templateId,
+									submissionKey: encryptedKey, // Use the encrypted key, not submission ID,
 									FormData: formData
 								})
 							});
@@ -316,7 +385,7 @@
 								id: STORAGE_KEY,
 								payload: {
 									intentToSubmit: true,
-									Token: templateId,
+									Token: id, // Use the original URL parameter instead of templateId,
 									FormData: formData
 								}
 							});
