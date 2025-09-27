@@ -14,7 +14,6 @@
 
 	let totalResponses = $derived(responses.length);
 
-	console.log('Responses are ', templateInfo);
 </script>
 
 <div class="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
