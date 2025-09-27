@@ -41,7 +41,7 @@
 </script>
 
 <!-- Sidebar -->
-<div class="flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 {collapsed ? 'w-16' : 'w-64'}">
+<div class="flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 {collapsed ? 'w-20' : 'w-64'}">
 	<!-- Sidebar Header -->
 	<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
 		{#if !collapsed}
