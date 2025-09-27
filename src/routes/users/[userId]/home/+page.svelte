@@ -44,6 +44,10 @@
 		window.location.href = `/users/${userId}/submissions`;
 	}
 
+	function navigateToFieldLibrary() {
+		window.location.href = `/users/${userId}/field-library`;
+	}
+
 	function navigateToAnalytics() {
 		window.location.href = `/users/${userId}/analytics`;
 	}
@@ -56,30 +60,21 @@
 <div class="w-full bg-gray-50 dark:bg-gray-900">
 	<!-- Header Section -->
 	<div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+		<div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 			<div class="flex items-center justify-between">
 				<div>
 					<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
 						Welcome back, {data.user.name}!
 					</h1>
 					<p class="text-gray-600 dark:text-gray-400 mt-1">
-						Ready to build something amazing? Your team has generated {data.totalTemplates} templates.
+						Ready to build something amazing?
 					</p>
-				</div>
-				<div class="flex items-center space-x-3">
-					<div class="flex items-center justify-center w-12 h-12 bg-orange-500 text-white rounded-full font-semibold text-lg">
-						{data.user.name.charAt(0)}
-					</div>
-					<div class="text-right">
-						<div class="text-sm font-medium text-gray-900 dark:text-white">{data.user.name}</div>
-						<div class="text-xs text-gray-500 dark:text-gray-400">{data.user.role}</div>
-					</div>
 				</div>
 			</div>
 		</div>
 	</div>
 
-	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+	<div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<!-- Quick Actions Section -->
 		<div class="mb-8">
 			<div class="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-6 border border-orange-200 dark:border-orange-800">
@@ -92,7 +87,7 @@
 						class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
 					>
 						<Icon icon="material-symbols:add" class="mr-2" width="20" height="20" />
-						Create Template
+						Create Form Template
 					</button>
 					
 					<button 
@@ -100,24 +95,24 @@
 						class="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
 					>
 						<Icon icon="material-symbols:dashboard" class="mr-2" width="20" height="20" />
-						Manage Templates
+						Manage Form Templates
 					</button>
 					
 					<button 
-						onclick={navigateToSubmissions}
+						onclick={navigateToFieldLibrary}
 						class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
 					>
-						<Icon icon="material-symbols:folder-open" class="mr-2" width="20" height="20" />
-						View Submissions
+						<Icon icon="iconoir:input-field" class="mr-2" width="20" height="20" />
+						Explore Field Library
 					</button>
 					
-					<button 
+					<!-- <button 
 						onclick={navigateToAnalytics}
 						class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
 					>
 						<Icon icon="material-symbols:analytics" class="mr-2" width="20" height="20" />
 						Analytics
-					</button>
+					</button> -->
 				</div>
 			</div>
 		</div>

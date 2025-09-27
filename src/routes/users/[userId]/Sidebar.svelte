@@ -54,8 +54,8 @@
 		>
 			<Icon 
 				icon={collapsed ? 'material-symbols:menu' : 'material-symbols:menu-open'} 
-				width="20" 
-				height="20" 
+				width="22" 
+				height="22" 
 				class="text-gray-600 dark:text-gray-400"
 			/>
 		</button>
