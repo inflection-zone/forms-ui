@@ -78,11 +78,11 @@
 		<p class="text-destructive">{errors?.Description}</p>
 	</div>
 
-	<div class="relative items-center  space-y-1">
+	<!-- <div class="relative items-center  space-y-1">
 		<Label class="col-span-11 ">Tenant Code</Label>
 		<Input name="TenantCode" bind:value={templateData.TenantCode} />
 		<p class="text-destructive">{errors?.TenantCode}</p>
-	</div>
+	</div> -->
 
 	<div class="relative items-center  space-y-1">
 		<Label class="col-span-11 ">Current Version</Label>

@@ -107,7 +107,8 @@ export const updateFormTemplate = async (
 	tenantCode: string,
 	currentVersion: string,
 	type: string,
-	itemsPerPage: string
+	itemsPerPage: string,
+	isFavourite?: boolean
 ) => {
 	const body = {
 		...(title && { Title: title }),
@@ -116,6 +117,7 @@ export const updateFormTemplate = async (
 		...(currentVersion && { CurrentVersion: parseInt(currentVersion) }),
 		...(type && { Type: type }),
 		...(itemsPerPage && { ItemsPerPage: itemsPerPage }),
+		...(isFavourite !== undefined && { IsFavourite: isFavourite }),
 		// ...(OwnerUserId && { OwnerUserId: OwnerUserId }),
 		// Title: title ?? title,
 		// Description: description ?? description,
@@ -123,6 +125,18 @@ export const updateFormTemplate = async (
 		// CurrentVersion: currentVersion ?? parseInt(currentVersion),
 		// Type: type ?? type,
 		// ItemsPerPage: itemsPerPage ?? itemsPerPage,
+	};
+
+	const url = BACKEND_API_URL + `/form-templates/${id}`;
+	return await put_(url, body);
+};
+
+export const toggleFormTemplateFavorite = async (
+	id: string,
+	isFavourite: boolean
+) => {
+	const body = {
+		IsFavourite: isFavourite
 	};
 
 	const url = BACKEND_API_URL + `/form-templates/${id}`;
