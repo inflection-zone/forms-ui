@@ -86,7 +86,7 @@
 <div class="mb-4">
 	<!-- Header Info -->
 	<div class="pb-2">
-		<div class="flex items-end justify-between gap-6">
+		<div class="">
 			<!-- Title and Description Section -->
 			<div class="flex-1">
 				<div class="flex items-end justify-between">
@@ -96,16 +96,16 @@
 							<span class="text-sm text-muted-foreground mb-1">- {Helper.truncateText(formData.description, 50)}</span>
 						{/if}
 					</div>
-					<div class="flex items-center gap-2">
+					<div class="flex items-center">
 						<div class="relative">
-							<button
-								class="p-1 hover:bg-accent rounded-md transition-colors"
-								onclick={() => handleShareForm()}
-								onmouseenter={() => (showShareTooltip = true)}
-								onmouseleave={() => (showShareTooltip = false)}
-								title="Share Form"
-							>
-								<Icon icon="lucide:share" class="w-5 h-5 text-muted-foreground hover:text-foreground" />
+						<button
+							class="p-2 hover:bg-accent rounded-md transition-colors"
+							onclick={() => handleShareForm()}
+							onmouseenter={() => (showShareTooltip = true)}
+							onmouseleave={() => (showShareTooltip = false)}
+							title="Share Form"
+						>
+								<Icon icon="material-symbols:share" class="w-5 h-5 text-muted-foreground hover:text-foreground" />
 							</button>
 							{#if showShareTooltip}
 								<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap z-50">
@@ -114,13 +114,13 @@
 							{/if}
 						</div>
 						<div class="relative">
-							<button
-								class="p-1 hover:bg-accent rounded-md transition-colors {isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}"
-								onclick={() => handleFavoriteForm()}
-								onmouseenter={() => (showFavoriteTooltip = true)}
-								onmouseleave={() => (showFavoriteTooltip = false)}
-								disabled={isFavoriteLoading}
-							>
+						<button
+							class="p-2 hover:bg-accent rounded-md transition-colors {isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}"
+							onclick={() => handleFavoriteForm()}
+							onmouseenter={() => (showFavoriteTooltip = true)}
+							onmouseleave={() => (showFavoriteTooltip = false)}
+							disabled={isFavoriteLoading}
+						>
 								{#if isFavoriteLoading}
 									<Icon icon="lucide:loader-2" class="w-5 h-5 text-muted-foreground animate-spin" />
 								{:else}
@@ -136,10 +136,11 @@
 								</div>
 							{/if}
 						</div>
-						<button
-							class="p-1 hover:bg-accent rounded-md transition-colors"
-							onclick={() => window.location.href = `/users/${userId}/form-templates/${templateId}/preview`}
-							title="Preview Form"
+						<div class="relative">
+							<button
+								class="p-2 hover:bg-accent rounded-md transition-colors"
+								onclick={() => window.location.href = `/users/${userId}/form-templates/${templateId}/preview`}
+								title="Preview Form"
 								onmouseenter={() => (showPreviewTooltip = true)}
 								onmouseleave={() => (showPreviewTooltip = false)}
 							>
@@ -184,3 +185,4 @@
 		</div>
 	</div>
 
+</div>	
