@@ -12,12 +12,16 @@
 			displayCode?: string;
 			type?: string;
 			questions: number;
+			isFavourite?: boolean;
 		};
 		userId: string;
 		templateId: string;
 	} = $props();
 
 	let showTooltip = $state(false);
+	let showFavoriteTooltip = $state(false);
+	let isFavoriteLoading = $state(false);
+	let isFavourite = $state(formData.isFavourite || false);
 
 	function handleShareForm() {
 		// Copy form URL to clipboard
@@ -26,6 +30,46 @@
 			// You could add a toast notification here
 			alert('Form URL copied to clipboard!');
 		});
+	}
+
+	async function handleFavoriteForm() {
+		if (isFavoriteLoading) return; // Prevent multiple clicks
+		
+		try {
+			isFavoriteLoading = true;
+			
+			// Toggle the favorite status
+			const newFavoriteStatus = !isFavourite;
+			
+			const response = await fetch('/api/server/template/favorite', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					id: templateId,
+					isFavourite: newFavoriteStatus
+				})
+			});
+			
+			const result = await response.json();
+			
+			if (response.ok && result.status === 'success') {
+				// Update local state
+				isFavourite = newFavoriteStatus;
+				
+				// Show success message
+				alert(result.message || `Form ${newFavoriteStatus ? 'added to' : 'removed from'} favorites!`);
+			} else {
+				// Show error message
+				alert(result.message || 'Failed to update favorite status');
+			}
+		} catch (error) {
+			console.error('Error toggling favorite:', error);
+			alert('Failed to update favorite status. Please try again.');
+		} finally {
+			isFavoriteLoading = false;
+		}
 	}
 
 	function handleDeleteForm() {
@@ -60,6 +104,29 @@
 							{#if showTooltip}
 								<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap z-50">
 									Share Form
+								</div>
+							{/if}
+						</div>
+						<div class="relative">
+							<button
+								class="p-1 hover:bg-accent rounded-md transition-colors {isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}"
+								onclick={() => handleFavoriteForm()}
+								onmouseenter={() => (showFavoriteTooltip = true)}
+								onmouseleave={() => (showFavoriteTooltip = false)}
+								disabled={isFavoriteLoading}
+							>
+								{#if isFavoriteLoading}
+									<Icon icon="lucide:loader-2" class="w-5 h-5 text-muted-foreground animate-spin" />
+								{:else}
+									<Icon 
+										icon={isFavourite ? "material-symbols:star" : "material-symbols:star-outline"} 
+										class="w-5 h-5 {isFavourite ? 'text-yellow-500' : 'text-muted-foreground hover:text-foreground'}" 
+									/>
+								{/if}
+							</button>
+							{#if showFavoriteTooltip}
+								<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap z-50">
+									{isFavourite ? 'Remove from Favorites' : 'Add to Favorites'}
 								</div>
 							{/if}
 						</div>
