@@ -13,6 +13,8 @@
 	let qrCodeDataUrl = $state('');
 	let showQRCode = $state(false);
 	
+	
+
 	// New share modal state
 	let shareTab = $state('one'); // 'one' or 'many'
 	let expirationValue = $state(10);
@@ -23,8 +25,12 @@
 	let singleEmailAddress = $state('');
 	let showEmailInput = $state(false);
 	let generatedLinks = $state([]);
-let showShareTooltip = $state(false);
+    let showShareTooltip = $state(false);
     let showPreviewTooltip = $state(false);
+    let showFavoriteTooltip = $state(false);
+    let isFavoriteLoading = $state(false);
+    let isFavourite = $state(false);
+	
 	const tabs = [
 		{ id: 'edit', label: 'Edit Form', icon: 'lucide:edit' },
 		{ id: 'preview', label: 'Preview', icon: 'lucide:eye' },
@@ -83,72 +89,114 @@ let showShareTooltip = $state(false);
 	}
 
 	const createLink = async (templateId: string) => {
-		try {
-			if (!navigator.onLine) {
-				console.warn('You are offline. Generating offline link...');
-				try {
-					const generalStorage = new IndexedDbStorageManager('general', 'environment_variables');
-					const code = Math.random().toString(36).substring(2, 8);
-					const encryptedId = btoa(templateId);
-					const offlineLink = `offline-${code}-${encryptedId}`;
-					const baseUrlObj = await generalStorage.get('this_base_url');
-					if (baseUrlObj === null) {
-						console.error('Base URL not found in IndexedDB');
-						// Fallback to default URL
-						link = `http://localhost:5173/offline-form/submissions/${offlineLink}`;
-					} else {
-						const baseUrl = baseUrlObj['this_base_url'] || 'http://localhost:5173';
-						link = `${baseUrl}/offline-form/submissions/${offlineLink}`;
-					}
-					// Generate QR code for the offline link
-					await generateQRCode(link);
-					return link;
-				} catch (indexedDbError) {
-					console.error('IndexedDB Error:', indexedDbError);
-					// Fallback to default URL if IndexedDB fails
-					const code = Math.random().toString(36).substring(2, 8);
-					const encryptedId = btoa(templateId);
-					const offlineLink = `offline-${code}-${encryptedId}`;
-					link = `http://localhost:5173/offline-form/submissions/${offlineLink}`;
-					await generateQRCode(link);
-					return link;
-				}
-			}
+        try {
+            if (!navigator.onLine) {
+                console.warn('You are offline. Generating offline link...');
+                try {
+                    const generalStorage = new IndexedDbStorageManager('general', 'environment_variables');
+                    const code = Math.random().toString(36).substring(2, 8);
+                    const encryptedId = btoa(templateId);
+                    const offlineLink = `offline-${code}-${encryptedId}`;
+                    const baseUrlObj = await generalStorage.get('this_base_url');
+                    if (baseUrlObj === null) {
+                        console.error('Base URL not found in IndexedDB');
+                        // Fallback to default URL
+                        link = `http://localhost:5173/offline-form/submissions/${offlineLink}`;
+                    } else {
+                        const baseUrl = baseUrlObj['this_base_url'] || 'http://localhost:5173';
+                        link = `${baseUrl}/offline-form/submissions/${offlineLink}`;
+                    }
+                    // Generate QR code for the offline link
+                    await generateQRCode(link);
+                    return link;
+                } catch (indexedDbError) {
+                    console.error('IndexedDB Error:', indexedDbError);
+                    // Fallback to default URL if IndexedDB fails
+                    const code = Math.random().toString(36).substring(2, 8);
+                    const encryptedId = btoa(templateId);
+                    const offlineLink = `offline-${code}-${encryptedId}`;
+                    link = `http://localhost:5173/offline-form/submissions/${offlineLink}`;
+                    await generateQRCode(link);
+                    return link;
+                }
+            }
+            // Use the new share link API
+            const response = await fetch('/api/server/share-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    formId: templateId,
+                    shareType: 'single',
+                    expiresInValue: 7,
+                    expiresInUnit: 'days',
+                })
+            });
+            
+            const result = await response.json();
+            if (result.HttpCode === 201) {
+                link = result.Data.shareUrl;
+                // Generate QR code for the link
+                await generateQRCode(link);
+            } else {
+                addToast({
+                    message: 'Failed to generate link',
+                    type: 'error',
+                    timeout: 3000
+                });
+            }
+        } catch (error) {
+            console.error('Submission Error:', error);
+            addToast({
+                message: 'Error generating link',
+                type: 'error',
+                timeout: 3000
+            });
+            return null;
+        }
+    };
 
-			// Use the new share link API
-			const response = await fetch('/api/server/share-link', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+					
+
+	async function handleFavoriteForm() {
+		if (isFavoriteLoading) return; // Prevent multiple clicks
+		
+		try {
+			isFavoriteLoading = true;
+			
+			// Toggle the favorite status
+			const newFavoriteStatus = !isFavourite;
+			
+			const response = await fetch('/api/server/template/favorite', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
 				body: JSON.stringify({
-					formId: templateId,
-					shareType: 'single',
-					expiresInValue: 7,
-					expiresInUnit: 'days',
+					id: templateId,
+					isFavourite: newFavoriteStatus
+
 				})
 			});
 			
 			const result = await response.json();
-			if (result.HttpCode === 201) {
-				link = result.Data.shareUrl;
-				// Generate QR code for the link
-				await generateQRCode(link);
+			if (response.ok && result.status === 'success') {
+				// Update local state
+				isFavourite = newFavoriteStatus;
+				
+				// Show success message
+				alert(result.message || `Form ${newFavoriteStatus ? 'added to' : 'removed from'} favorites!`);
 			} else {
-				addToast({
-					message: 'Failed to generate link',
-					type: 'error',
-					timeout: 3000
-				});
+				// Show error message
+				alert(result.message || 'Failed to update favorite status');
 			}
 		} catch (error) {
-			console.error('Submission Error:', error);
-			addToast({
-				message: 'Error generating link',
-				type: 'error',
-				timeout: 3000
-			});
-			return null;
+			console.error('Error toggling favorite:', error);
+			alert('Failed to update favorite status. Please try again.');
+		} finally {
+			isFavoriteLoading = false;
 		}
-	};
+	}
+
 
 	function handleDeleteForm() {
 		if (confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
@@ -394,7 +442,7 @@ let showShareTooltip = $state(false);
 <div class="mb-4">
 	<!-- Header Info -->
 	<div class="pb-2">
-		<div class="flex items-end justify-between gap-6">
+		<div class="">
 			<!-- Title and Description Section -->
 			<div class="flex-1">
 				<div class="flex items-end justify-between">
@@ -404,16 +452,16 @@ let showShareTooltip = $state(false);
 							<span class="text-sm text-muted-foreground mb-1">- {Helper.truncateText(formData.description, 50)}</span>
 						{/if}
 					</div>
-					<div class="flex items-center gap-2">
+					<div class="flex items-center">
 						<div class="relative">
-							<button
-								class="p-1 hover:bg-accent rounded-md transition-colors"
-								onclick={() => handleShareForm()}
-								onmouseenter={() => (showShareTooltip = true)}
-								onmouseleave={() => (showShareTooltip = false)}
-								title="Share Form"
-							>
-								<Icon icon="lucide:share" class="w-5 h-5 text-muted-foreground hover:text-foreground" />
+						<button
+							class="p-2 hover:bg-accent rounded-md transition-colors"
+							onclick={() => handleShareForm()}
+							onmouseenter={() => (showShareTooltip = true)}
+							onmouseleave={() => (showShareTooltip = false)}
+							title="Share Form"
+						>
+								<Icon icon="material-symbols:share" class="w-5 h-5 text-muted-foreground hover:text-foreground" />
 							</button>
 							{#if showShareTooltip}
 								<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap z-50">
@@ -422,12 +470,35 @@ let showShareTooltip = $state(false);
 							{/if}
 						</div>
 						<div class="relative">
+						<button
+							class="p-2 hover:bg-accent rounded-md transition-colors {isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}"
+							onclick={() => handleFavoriteForm()}
+							onmouseenter={() => (showFavoriteTooltip = true)}
+							onmouseleave={() => (showFavoriteTooltip = false)}
+							disabled={isFavoriteLoading}
+						>
+								{#if isFavoriteLoading}
+									<Icon icon="lucide:loader-2" class="w-5 h-5 text-muted-foreground animate-spin" />
+								{:else}
+									<Icon 
+										icon={isFavourite ? "material-symbols:star" : "material-symbols:star-outline"} 
+										class="w-5 h-5 {isFavourite ? 'text-yellow-500' : 'text-muted-foreground hover:text-foreground'}" 
+									/>
+								{/if}
+							</button>
+							{#if showFavoriteTooltip}
+								<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap z-50">
+									{isFavourite ? 'Remove from Favorites' : 'Add to Favorites'}
+								</div>
+							{/if}
+						</div>
+						<div class="relative">
 							<button
-								class="p-1 hover:bg-accent rounded-md transition-colors"
+								class="p-2 hover:bg-accent rounded-md transition-colors"
 								onclick={() => window.location.href = `/users/${userId}/form-templates/${templateId}/preview`}
+								title="Preview Form"
 								onmouseenter={() => (showPreviewTooltip = true)}
 								onmouseleave={() => (showPreviewTooltip = false)}
-								title="Preview Form"
 							>
 								<Icon icon="lucide:eye" class="w-5 h-5 text-muted-foreground hover:text-foreground" />
 							</button>
@@ -744,3 +815,5 @@ let showShareTooltip = $state(false);
 		</div>
 	</div>
 {/if}
+
+
