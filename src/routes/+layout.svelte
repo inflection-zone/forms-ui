@@ -1,13 +1,12 @@
 <script lang="ts">
 	import '../app.css';
-	import { ModeWatcher } from 'mode-watcher';
 	import { addToast } from '$lib/components/toast/toast.store';
 	import Toasts from '$lib/components/toast/toasts.svelte';
-	import Navbar from '$lib/components/common/Navbar.svelte';
 	import { page } from '$app/state';
 	import { getFlash } from 'sveltekit-flash-message';
 	import ErrorBoundary from '$lib/components/common/ErrorBoundary.svelte';
 	import '$lib/utils/offline-submission-console';
+	import Icon from '@iconify/svelte';
 
 	///////////////////////////////////////////////////////////////////////////
 
@@ -40,6 +39,7 @@
 			status = 200;
 		}
 	});
+
 </script>
 
 <svelte:head>
@@ -48,15 +48,12 @@
 </svelte:head>
 
 <Toasts />
-<ModeWatcher />
 
-<div class="flex flex-col">
-	<Navbar />
-	<div class="h-full">
-		{#if error}
-			<ErrorBoundary {error} {status} />
-		{:else}
-			{@render children()}
-		{/if}
-	</div>
+<!-- Main Content Area -->
+<div class="flex-1 overflow-auto">
+	{#if error}
+		<ErrorBoundary {error} {status} />
+	{:else}
+		{@render children()}
+	{/if}
 </div>

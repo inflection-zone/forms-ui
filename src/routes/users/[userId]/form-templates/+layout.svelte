@@ -26,7 +26,6 @@
 
 <div class="flex h-screen flex-col">
 	<div class="fixed top-0 z-50 w-full bg-emerald-500">
-		<!-- <Navbar /> -->
 	</div>
 	<div class="bg-sl h-full">
 		{@render children()}
