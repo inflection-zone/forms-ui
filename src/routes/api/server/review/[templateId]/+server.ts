@@ -23,7 +23,12 @@ export const GET = async (event: RequestEvent) => {
             templates: temp
         }));
     } catch (err) {
-        console.error(`Error retrieving form data: ${err.message}`);
-        return new Response(err.message);
+        const error = err as Error;
+        console.error(`Error retrieving form data: ${error.message}`);
+        return new Response(JSON.stringify({
+            Status: 'failure',
+            HttpCode: 500,
+            Message: error.message || 'An error occurred while retrieving form data.',
+        }));
     }
 };

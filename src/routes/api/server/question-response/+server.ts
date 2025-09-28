@@ -45,6 +45,7 @@ export const POST = async (event: RequestEvent) => {
         const request = event.request;
         const data = await request.json();
 
+        console.log('Data from api/server/submit', data);
         console.log('Data from api/server/question-response:', data);
         console.log('formSubmissionKey:', data.formSubmissionKey);
         console.log('questionResponses count:', data.questionResponses?.length);

@@ -290,7 +290,6 @@ export async function questionResponseModels(
                 : null,
         };
     });
-
     return questionResponses;
 }
 
