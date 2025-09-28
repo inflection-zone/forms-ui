@@ -120,44 +120,53 @@
 		</div>
 		<p class="error">{errors?.IsRequired}</p>
 
-		<div class="my-2 flex flex-col">
-			<Label>Options <span class="text-red-600">*</span></Label>
-			<Button
-				type="button"
-				onclick={addOption}
-				class="my-2 w-fit"
-				disabled={questionCard.ResponseType === 'Boolean' && options.length >= 2}
-			>
-				Add Option
-			</Button>
+		{#if !questionCard.IsFieldLibraryField}
+			<div class="my-2 flex flex-col">
+				<Label>Options <span class="text-red-600">*</span></Label>
+				<Button
+					type="button"
+					onclick={addOption}
+					class="my-2 w-fit"
+					disabled={questionCard.ResponseType === 'Boolean' && options.length >= 2}
+				>
+					Add Option
+				</Button>
 
-			{#each options as option, index}
-				<div class="mb-2 flex items-center">
-					<Input
-						type="number"
-						name={`options[${index}].Sequence`}
-						bind:value={option.Sequence}
-						oninput={(e) => updateOption(index, 'Sequence', e.target.value)}
-						placeholder={`Sequence of ${index + 1} Option`}
-						class="mr-2 w-1/4"
-					/>
-					<Input
-						type="text"
-						name={`options[${index}].Text`}
-						bind:value={option.Text}
-						oninput={(e) => updateOption(index, 'Text', e.target.value)}
-						placeholder={`Data for Option ${index + 1}`}
-						class="mr-2 w-full"
-					/>
-					<Input type="hidden" name={`options[${index}].ImageUrl`} bind:value={option.ImageUrl} />
-					<Button type="button" onclick={() => removeOption(index)} class="ml-2">
-						<Icon icon="mingcute:delete-2-line" width="25" height="25" />
-					</Button>
+				{#each options as option, index}
+					<div class="mb-2 flex items-center">
+						<Input
+							type="number"
+							name={`options[${index}].Sequence`}
+							bind:value={option.Sequence}
+							oninput={(e) => updateOption(index, 'Sequence', e.target.value)}
+							placeholder={`Sequence of ${index + 1} Option`}
+							class="mr-2 w-1/4"
+						/>
+						<Input
+							type="text"
+							name={`options[${index}].Text`}
+							bind:value={option.Text}
+							oninput={(e) => updateOption(index, 'Text', e.target.value)}
+							placeholder={`Data for Option ${index + 1}`}
+							class="mr-2 w-full"
+						/>
+						<Input type="hidden" name={`options[${index}].ImageUrl`} bind:value={option.ImageUrl} />
+						<Button type="button" onclick={() => removeOption(index)} class="ml-2">
+							<Icon icon="mingcute:delete-2-line" width="25" height="25" />
+						</Button>
+					</div>
+				{/each}
+
+				<input type="hidden" name="options" value={JSON.stringify(options)} />
+			</div>
+		{:else}
+			<div class="my-2 flex flex-col">
+				<Label>Options (Pre-configured from Field Library)</Label>
+				<div class="mt-2 rounded-md bg-gray-50 p-3 text-sm text-gray-600">
+					This field uses pre-configured options from the Field Library. Options cannot be modified here.
 				</div>
-			{/each}
-
-			<input type="hidden" name="options" value={JSON.stringify(options)} />
-		</div>
+			</div>
+		{/if}
 
 		<div class="relative my-2 hidden grid-cols-12 items-center gap-4">
 			<Label class="col-span-11 ">Response Type</Label>

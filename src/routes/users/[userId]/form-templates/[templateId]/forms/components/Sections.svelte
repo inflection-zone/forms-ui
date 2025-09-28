@@ -7,7 +7,6 @@
 	import Icon from '@iconify/svelte';
 	import { formComponents } from './response.types/index';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
-	import Sections from './Sections.svelte';
 	import { writable } from 'svelte/store';
 	////////////////////////////////////////////////////////////////////////////
 

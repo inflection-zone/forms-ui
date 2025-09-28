@@ -6,8 +6,10 @@
 		Sidebar, 
 		FormHelper
 	} from '$lib/index';
+	import FieldLibrarySidebar from '$lib/components/common/FieldLibrarySidebar.svelte';
 	import { healthCarePlugins, basicCards } from '$lib/components/common/questionTypes';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import Sections from './components/Sections.svelte';
 	import { dropzone } from '$lib/components/common/dnd';
 	import { invalidate, invalidateAll } from '$app/navigation';
@@ -20,7 +22,7 @@
 
 	let errors: Record<string, string> = $state({});
 
-	let typeOfQuestion: 'Basic' | 'HealthCare' = $state('Basic');
+	let typeOfQuestion: 'Basic' | 'HealthCare' | 'FieldLibrary' = $state('Basic');
 	let uiSections = $state(data.templateInfo.FormSections[0].Subsections);
 	const userId = $derived(page.params.userId);
 	const parentFormTemplateId = $derived(page.params.templateId);
@@ -44,8 +46,8 @@
 
 	function changeTypes(event: Event) {
 		const target = event.target as HTMLInputElement;
-		if (target.value === 'Basic' || target.value === 'HealthCare') {
-			typeOfQuestion = target.value;
+		if (target.value === 'Basic' || target.value === 'HealthCare' || target.value === 'FieldLibrary') {
+			typeOfQuestion = target.value as 'Basic' | 'HealthCare' | 'FieldLibrary';
 		}
 	}
 
@@ -58,10 +60,10 @@
 		event.preventDefault();
 		event.stopPropagation();
 
-		// console.log('dropData: ', dropData);
-		// console.log('sectionId: ', sectionId);
-		// console.log('subsectionId: ', subsectionId);
-		// console.log('parentFormTemplateId: ', parentFormTemplateId);
+		console.log('dropData: ', dropData);
+		console.log('sectionId: ', sectionId);
+		console.log('subsectionId: ', subsectionId);
+		console.log('parentFormTemplateId: ', parentFormTemplateId);
 		if (sectionId === null && subsectionId === null) {
 			// To create section in root section
 			// Required data: parentFormTemplateId, parentSectionId that is rootSectionId
@@ -82,11 +84,44 @@
 
 		if (sectionId !== null && subsectionId === null) {
 			if (dropData.type === 'card') {
-				const model = {
-					parentFormTemplateId,
-					parentSectionId: sectionId,
-					responseType: dropData.value
-				};
+				// Check if this is a Field Library field with rich configuration
+				const isFieldLibraryField = dropData.fieldId && dropData.fieldType;
+				
+				let model;
+				if (isFieldLibraryField) {
+					// Use Field Library configuration
+					model = {
+						ParentTemplateId: parentFormTemplateId,
+						ParentSectionId: sectionId,
+						ResponseType: dropData.value,
+						// Include Field Library specific configuration
+						Title: dropData.name,
+						Description: dropData.description,
+						IsRequired: dropData.isRequired || false,
+						Hint: dropData.description,
+						// Add identifier for Field Library fields
+						IsFieldLibraryField: true,
+						FieldLibraryId: dropData.fieldId,
+						FieldLibraryType: dropData.fieldType,
+						// Map configuration options to form field properties
+						...(dropData.configurationOptions && {
+							Options: dropData.configurationOptions.find(opt => opt.key === 'options')?.defaultValue || [],
+							RangeMin: dropData.configurationOptions.find(opt => opt.key === 'min')?.defaultValue,
+							RangeMax: dropData.configurationOptions.find(opt => opt.key === 'max')?.defaultValue,
+							DefaultExpectedUnit: dropData.configurationOptions.find(opt => opt.key === 'unit')?.defaultValue
+						})
+					};
+					console.log('Creating Field Library field with configuration:', model);
+				} else {
+					// Use basic configuration for Basic/HealthCare fields
+					model = {
+						ParentTemplateId: parentFormTemplateId,
+						ParentSectionId: sectionId,
+						ResponseType: dropData.value
+					};
+					console.log('Creating basic field:', model);
+				}
+				
 				const response = await fetch(`/api/server/form-fields`, {
 					method: 'POST',
 					body: JSON.stringify(model),
@@ -114,11 +149,44 @@
 
 		if (sectionId !== null && subsectionId !== null) {
 			if (dropData.type === 'card') {
-				const model = {
-					parentFormTemplateId,
-					parentSectionId: subsectionId,
-					responseType: dropData.value
-				};
+				// Check if this is a Field Library field with rich configuration
+				const isFieldLibraryField = dropData.fieldId && dropData.fieldType;
+				
+				let model;
+				if (isFieldLibraryField) {
+					// Use Field Library configuration
+					model = {
+						ParentTemplateId: parentFormTemplateId,
+						ParentSectionId: subsectionId,
+						ResponseType: dropData.value,
+						// Include Field Library specific configuration
+						Title: dropData.name,
+						Description: dropData.description,
+						IsRequired: dropData.isRequired || false,
+						Hint: dropData.description,
+						// Add identifier for Field Library fields
+						IsFieldLibraryField: true,
+						FieldLibraryId: dropData.fieldId,
+						FieldLibraryType: dropData.fieldType,
+						// Map configuration options to form field properties
+						...(dropData.configurationOptions && {
+							Options: dropData.configurationOptions.find(opt => opt.key === 'options')?.defaultValue || [],
+							RangeMin: dropData.configurationOptions.find(opt => opt.key === 'min')?.defaultValue,
+							RangeMax: dropData.configurationOptions.find(opt => opt.key === 'max')?.defaultValue,
+							DefaultExpectedUnit: dropData.configurationOptions.find(opt => opt.key === 'unit')?.defaultValue
+						})
+					};
+					console.log('Creating Field Library field in subsection with configuration:', model);
+				} else {
+					// Use basic configuration for Basic/HealthCare fields
+					model = {
+						ParentTemplateId: parentFormTemplateId,
+						ParentSectionId: subsectionId,
+						ResponseType: dropData.value
+					};
+					console.log('Creating basic field in subsection:', model);
+				}
+				
 				const response = await fetch(`/api/server/form-fields`, {
 					method: 'POST',
 					body: JSON.stringify(model),
@@ -308,6 +376,7 @@
 	<FormHelper {closeSheet} {handleQuestionCardUpdate} bind:questionCard={cardToOpen} bind:errors bind:questionList={uiSections}/>
 {/if}
 
+
 <!-- Section -->
 
 <div class="bg-green-5 my-10 flex min-h-screen flex-row">
@@ -319,11 +388,11 @@
 			/>
 		</button>
 
-		<Sidebar {typeOfQuestion} {changeTypes} {healthCarePlugins} {basicCards} {isOpen} />
+		<FieldLibrarySidebar {typeOfQuestion} {changeTypes} {isOpen} />
 	</div>
 	<div class="flex md:w-[70%] overflow-hidden">
         <div class="my-1 w-full space-y-2 p-2 md:mx-24 lg:mx-10">
-            <div class="flex w-full flex-row items-center">
+            <div class="flex w-full flex-row items-center justify-between">
                 <Breadcrumb.Root>
                     <Breadcrumb.List class="flex">
                         <Breadcrumb.Item>
@@ -339,6 +408,7 @@
                         </Breadcrumb.Item>
                     </Breadcrumb.List>
                 </Breadcrumb.Root>
+                
                 <!-- <div class="ml-auto flex items-center">
                     <Dialog.Root>
                         <Dialog.Trigger class="{buttonVariants({ variant: 'outline' })} flex"></Dialog.Trigger>

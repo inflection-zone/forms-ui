@@ -125,7 +125,7 @@ export type QuestionResponseCreateModel = {
 export function createSchema(sections) {
     let schemaObj = {};
     sections.forEach((section) => {
-        section.Questions?.forEach((q) => {
+        section.FormFields?.forEach((q) => {
             if (q.IsRequired) {
                 switch (q.ResponseType) {
                     case 'Text':
@@ -221,8 +221,9 @@ export function createSchema(sections) {
     });
 
     if (Object.keys(schemaObj).length === 0) {
-        console.warn('Schema is empty. Ensure sections have required fields.');
-        return z.object({});
+        console.warn('Schema is empty. No required fields found, creating basic schema.');
+        // Create a basic schema that allows any object structure
+        return z.object({}).passthrough();
     }
     // console.log('schemaObj:----------- ', schemaObj);
     return z.object(schemaObj);
@@ -238,7 +239,7 @@ export async function questionResponseModels(
 
     function extractQuestions(sectionList) {
         return sectionList.flatMap((section) => {
-            const questions = section.Questions || [];
+            const questions = section.FormFields || [];
 
             // Recursively process nested subsections if they exist
             const nestedQuestions = section.Subsections ? extractQuestions(section.Subsections) : [];
@@ -249,7 +250,7 @@ export async function questionResponseModels(
 
     const allQuestions = extractQuestions(sections);
 
-    return allQuestions.map((question) => {
+    const questionResponses = allQuestions.map((question) => {
         const key = question.id;
         const value = answers[key];
         const { ResponseType } = question;
@@ -265,7 +266,7 @@ export async function questionResponseModels(
             FormSubmissionId,
             FormTemplateId,
             ResponseType,
-            QuestionId: key,
+            FormFieldId: key,
             IntegerValue: ["Integer", "Rating", "Range"].includes(ResponseType)
                 ? (value !== undefined ? Number(value) : null)
                 : null,
@@ -289,6 +290,7 @@ export async function questionResponseModels(
                 : null,
         };
     });
+    return questionResponses;
 }
 
 

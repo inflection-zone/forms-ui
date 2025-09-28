@@ -46,6 +46,11 @@ export const POST = async (event: RequestEvent) => {
         const data = await request.json();
 
         console.log('Data from api/server/submit', data);
+        console.log('Data from api/server/question-response:', data);
+        console.log('formSubmissionKey:', data.formSubmissionKey);
+        console.log('questionResponses count:', data.questionResponses?.length);
+        console.log('First question response FormSubmissionId:', data.questionResponses?.[0]?.FormSubmissionId);
+        
         const response = await createQuestionResponse(
                         data.formSubmissionKey,
                         data.questionResponses,

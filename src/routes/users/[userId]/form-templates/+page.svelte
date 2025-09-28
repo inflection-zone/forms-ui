@@ -4,20 +4,18 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
-	// import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { TemplateTable, TemplateForm } from '$lib/components/template/index';
 	import { enhance } from '$app/forms';
 	import { toastMessage } from '$lib/components/toast/toast.store';
 	import { invalidateAll } from '$app/navigation';
-	import DialogOverlay from '$lib/components/ui/dialog/dialog-overlay.svelte';
-
+	
 	//////////////////////////////////////////////////////////////////////
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 
 	const userId = page.params.userId;
-	// let assessments = data.assessmentTemplate;
+
 	let errors = $state({});
 	let templateData = {};
 	let expandedItem: string | null = $state();
