@@ -63,7 +63,7 @@
 	</div>
 	<div class="bg-card p-2 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border">
 		<div class="flex items-center justify-between">
-			<div class="text-muted-foreground text-sm">Total Submissions</div>
+			<div class="text-muted-foreground text-sm">Total Link Generated</div>
 			<div class="text-2xl font-bold text-card-foreground">{submissionsData?.Data?.TotalCount?.toLocaleString() || 0}</div>
 		</div>
 	</div>

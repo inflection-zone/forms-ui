@@ -1,7 +1,9 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
 	import { IndexedDbStorageManager } from '$lib/utils/indexdb.store.manager';
-	import { addToast } from '$lib/components/toast/toast.store';
+	import { addToast, toastMessage } from '$lib/components/toast/toast.store';
+	import { Helper } from '$lib/utils/helper';
+	import { goto } from '$app/navigation';
 
 	let { formData, userId, templateId } = $props();
 
@@ -22,13 +24,12 @@
 	let singleEmailAddress = $state('');
 	let showEmailInput = $state(false);
 	let generatedLinks = $state([]);
+    let showShareTooltip = $state(false);
+    let showPreviewTooltip = $state(false);
+    let showFavoriteTooltip = $state(false);
+    let isFavoriteLoading = $state(false);
+    let isFavourite = $state(formData.isFavourite || false);
 	let showTooltip = $state(false);
-	let showFavoriteTooltip = $state(false);
-	let isFavoriteLoading = $state(false);
-	let isFavourite = $state(formData.isFavourite || false);
-	let showShareTooltip = $state(false);
-	let showPreviewTooltip = $state(false);
-
 	const tabs = [
 		{ id: 'edit', label: 'Edit Form', icon: 'lucide:edit' },
 		{ id: 'favorite', label: 'Favorite', icon: 'lucide:heart' },
@@ -94,69 +95,79 @@
 		try {
 			if (!navigator.onLine) {
 				console.warn('You are offline. Generating offline link...');
-				try {
-					const generalStorage = new IndexedDbStorageManager('general', 'environment_variables');
-					const code = Math.random().toString(36).substring(2, 8);
-					const encryptedId = btoa(templateId);
-					const offlineLink = `offline-${code}-${encryptedId}`;
-					const baseUrlObj = await generalStorage.get('this_base_url');
-					if (baseUrlObj === null) {
-						console.error('Base URL not found in IndexedDB');
-						// Fallback to default URL
-						link = `http://localhost:5173/offline-form/submissions/${offlineLink}`;
-					} else {
-						const baseUrl = baseUrlObj['this_base_url'] || 'http://localhost:5173';
-						link = `${baseUrl}/offline-form/submissions/${offlineLink}`;
-					}
-					// Generate QR code for the offline link
-					await generateQRCode(link);
-					return link;
-				} catch (indexedDbError) {
-					console.error('IndexedDB Error:', indexedDbError);
-					// Fallback to default URL if IndexedDB fails
-					const code = Math.random().toString(36).substring(2, 8);
-					const encryptedId = btoa(templateId);
-					const offlineLink = `offline-${code}-${encryptedId}`;
-					link = `http://localhost:5173/offline-form/submissions/${offlineLink}`;
-					await generateQRCode(link);
-					return link;
+				const generalStorage = new IndexedDbStorageManager('general', 'environment_variables');
+				const code = Math.random().toString(36).substring(2, 8);
+				const encryptedId = btoa(templateId);
+				const offlineLink = `offline-${code}-${encryptedId}`;
+				const baseUrlObj = await generalStorage.get('this_base_url');
+				if (baseUrlObj === null) {
+					console.error('Base URL not found in IndexedDB');
+					return null;
 				}
+				const baseUrl = baseUrlObj['this_base_url'] || 'http://localhost:5173';
+				console.log(JSON.stringify(baseUrlObj));
+				link = `${baseUrl}/offline-form/submissions/${offlineLink}`;
+				toastMessage({
+					Message: 'You are offline. A temporary link has been generated.',
+					Data: { Link: link }
+				});
+				return link;
 			}
 
-			// Use the new share link API
-			const response = await fetch('/api/server/share-link', {
+			const response = await fetch(`/api/server/submission`, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ FormTemplateId: templateId }),
+				headers: { 'Content-Type': 'application/json' }
+			});
+			const result = await response.json();
+			if (result.HttpCode === 201 || result.State === 'success') {
+				link = result?.Data?.Link;
+				toastMessage(result);
+			} else {
+				toastMessage(result);
+			}
+		} catch (error) {
+			console.error('Submission Error:', error);
+			toastMessage();
+			return null;
+		}
+	};
+			
+
+	async function handleFavoriteForm() {
+		if (isFavoriteLoading) return; // Prevent multiple clicks
+		
+		try {
+			isFavoriteLoading = true;
+			
+			// Toggle the favorite status
+			const newFavoriteStatus = !isFavourite;
+			
+			const response = await fetch('/api/server/template/favorite', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
 				body: JSON.stringify({
-					formId: templateId,
-					shareType: 'single',
-					expiresInValue: 7,
-					expiresInUnit: 'days'
+					id: templateId,
+					isFavourite: newFavoriteStatus
+
 				})
 			});
 
 			const result = await response.json();
-			if (result.HttpCode === 201) {
-				link = result.Data.shareUrl;
-				// Generate QR code for the link
-				await generateQRCode(link);
-			} else {
-				addToast({
-					message: 'Failed to generate link',
-					type: 'error',
-					timeout: 3000
-				});
+			if (response.ok && result.status === 'success') {
+				// Update local state
+				isFavourite = newFavoriteStatus;				
 			}
 		} catch (error) {
-			console.error('Submission Error:', error);
-			addToast({
-				message: 'Error generating link',
-				type: 'error',
-				timeout: 3000
-			});
-			return null;
+			console.error('Error toggling favorite:', error);
+			alert('Failed to update favorite status. Please try again.');
+		} finally {
+			isFavoriteLoading = false;
 		}
-	};
+	}
+
 
 	function handleDeleteForm() {
 		if (confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
@@ -401,82 +412,107 @@
 			});
 		}
 	}
-
-	async function handleFavoriteForm() {
-		if (isFavoriteLoading) return; // Prevent multiple clicks
-
-		try {
-			isFavoriteLoading = true;
-
-			// Toggle the favorite status
-			const newFavoriteStatus = !isFavourite;
-
-			const response = await fetch('/api/server/template/favorite', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					id: templateId,
-					isFavourite: newFavoriteStatus
-				})
-			});
-
-			const result = await response.json();
-
-			if (response.ok && result.status === 'success') {
-				// Update local state
-				isFavourite = newFavoriteStatus;
-
-				// Show success message
-				alert(
-					result.message || `Form ${newFavoriteStatus ? 'added to' : 'removed from'} favorites!`
-				);
-			} else {
-				// Show error message
-				alert(result.message || 'Failed to update favorite status');
-			}
-		} catch (error) {
-			console.error('Error toggling favorite:', error);
-			alert('Failed to update favorite status. Please try again.');
-		} finally {
-			isFavoriteLoading = false;
-		}
-	}
 </script>
 
-<div class="mb-6 rounded-xl border border-border bg-card shadow-sm">
+<div class="mb-6 rounded-xl bg-card shadow-sm">
 	<!-- Header Info -->
-	<div class="border-b border-border p-6">
-		<h1 class="mb-4 text-2xl font-semibold text-card-foreground">{formData.title}</h1>
-		<div class="flex flex-wrap gap-6 text-sm text-muted-foreground">
-			<span>Created: {formData.created}</span>
-			<span>Last Modified: {formData.lastModified}</span>
-			<span>Status: {formData.status}</span>
-			<span>Questions: {formData.questions}</span>
-		</div>
-	</div>
+	<div class="pb-2">
+		<div class="">
+			<!-- Title and Description Section -->
+			<div class="flex-1">
+				<div class="flex items-end justify-between">
+					<div class="flex items-end gap-3">
+						<h1 class="text-4xl font-semibold text-foreground leading-tight">{formData.title}</h1>
+						{#if formData.description}
+							<span class="text-sm text-muted-foreground mb-1">- {Helper.truncateText(formData.description, 50)}</span>
+						{/if}
+					</div>
+					<div class="flex items-center">
+						<div class="relative">
+						<button
+							class="p-2 hover:bg-accent rounded-md transition-colors"
+							onclick={() => handleShareForm()}
+							onmouseenter={() => (showShareTooltip = true)}
+							onmouseleave={() => (showShareTooltip = false)}
+							title="Share Form"
+						>
+								<Icon icon="material-symbols:share" class="w-5 h-5 text-muted-foreground hover:text-foreground" />
+							</button>
+							{#if showShareTooltip}
+								<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap z-50">
+									Share Form
+								</div>
+							{/if}
+						</div>
+						<div class="relative">
+						<button
+							class="p-2 hover:bg-accent rounded-md transition-colors {isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}"
+							onclick={() => handleFavoriteForm()}
+							onmouseenter={() => (showFavoriteTooltip = true)}
+							onmouseleave={() => (showFavoriteTooltip = false)}
+							disabled={isFavoriteLoading}
+						>
+								{#if isFavoriteLoading}
+									<Icon icon="lucide:loader-2" class="w-5 h-5 text-muted-foreground animate-spin" />
+								{:else}
+									<Icon 
+										icon={isFavourite ? "material-symbols:star" : "material-symbols:star-outline"} 
+										class="w-5 h-5 {isFavourite ? 'text-yellow-500' : 'text-muted-foreground hover:text-foreground'}" 
+									/>
+								{/if}
+							</button>
+							{#if showFavoriteTooltip}
+								<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap z-50">
+									{isFavourite ? 'Remove from Favorites' : 'Add to Favorites'}
+								</div>
+							{/if}
+						</div>
+						<div class="relative">
+							<button
+								class="p-2 hover:bg-accent rounded-md transition-colors"
+								onclick={() => goto(`/users/${userId}/form-templates/${templateId}/preview`)}
+								title="Preview Form"
+								onmouseenter={() => (showPreviewTooltip = true)}
+								onmouseleave={() => (showPreviewTooltip = false)}
+							>
+								<Icon icon="lucide:eye" class="w-5 h-5 text-muted-foreground hover:text-foreground" />
+							</button>
+							{#if showPreviewTooltip}
+								<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap z-50">
+									Preview Form
+								</div>
+							{/if}
+						</div>
+						<button 
+							class="flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+							onclick={() =>goto(`/users/${userId}/form-templates/${templateId}/forms`)}
+							title="Edit Form"
+						>
+							<Icon icon="lucide:edit" class="w-4 h-4" />
+							<span class="hidden sm:inline">Edit</span>
+						</button>
+					</div>
+				</div>
+				<div class="flex gap-6 text-muted-foreground text-sm flex-wrap mt-2">
+					<span>Created: {formData.created}</span>
+					<span>Last Modified: {formData.lastModified}</span>
+					<span>Status: {formData.status}</span>
+					<span>Questions: {formData.questions}</span>
+					{#if formData.version}
+						<span>Version: {formData.version}</span>
+					{/if}
+					{#if formData.type}
+						<span>Type: {formData.type}</span>
+					{/if}
+				</div>
+				{#if formData.displayCode}
+					<div class="mt-2">
+						<span class="text-xs text-muted-foreground">Display Code: </span>
+						<code class="text-xs bg-muted px-2 py-1 rounded font-mono">{formData.displayCode}</code>
+					</div>
+				{/if}
+			</div>
 
-	<!-- Action Tabs -->
-	<div class="p-1">
-		<div class="flex">
-			{#each tabs as tab}
-				<button
-					class="group flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-medium transition-colors {activeTab ===
-					tab.id
-						? 'bg-primary text-primary-foreground'
-						: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
-					onclick={() => handleTabClick(tab.id)}
-				>
-					<Icon
-						icon={tab.icon}
-						class="h-4 w-4 transition-colors {activeTab === tab.id
-							? 'text-primary-foreground'
-							: 'text-muted-foreground group-hover:text-accent-foreground'}"
-					/>
-					{tab.label}
-				</button>
-			{/each}
 		</div>
 	</div>
 </div>
@@ -601,7 +637,7 @@
 											placeholder="Generated link will appear here..."
 										/>
 										<button
-											onclick={generateSingleLink}
+											onclick={() => createLink(templateId)}
 											class="rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700"
 										>
 											Generate
@@ -772,3 +808,4 @@
 		</div>
 	</div>
 {/if}
+

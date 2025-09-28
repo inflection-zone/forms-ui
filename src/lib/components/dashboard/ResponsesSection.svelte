@@ -21,11 +21,7 @@
 		<div class="flex flex-wrap gap-4 items-center justify-between">
 			<h3 class="text-lg font-semibold text-card-foreground">Response Explorer ({totalResponses.toLocaleString()} responses)</h3>
 			<div class="flex gap-2">
-				<input 
-					type="text" 
-					placeholder="Search responses..." 
-					class="px-4 py-2 border border-input rounded-lg text-sm bg-background text-foreground"
-				>
+				
 				<select class="px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground">
 					<option>All Status</option>
 					<option>Completed</option>

@@ -8,6 +8,7 @@
 	import IndividualSection from '$lib/components/dashboard/IndividualSection.svelte';
 	import ExportSection from '$lib/components/dashboard/ExportSection.svelte';
 	import Chatbot from '$lib/components/dashboard/Chatbot.svelte';
+	import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '$lib/components/ui/breadcrumb';
 	import { page } from '$app/state';
 	import type { PageServerData } from './$types';
 
@@ -166,10 +167,31 @@
 
 <div class=" min-h-screen bg-background text-foreground pt-8">
 	<!-- SIDEBAR -->
-	<DashboardSidebar {activeView} onViewChange={showView} />
+	<!-- <DashboardSidebar {activeView} onViewChange={showView} /> -->
 
 	<!-- MAIN CONTENT -->
-	<main class="ml-64 flex-1 p-5">
+	<main class="flex-1 p-5">
+		<!-- BREADCRUMB -->
+		<Breadcrumb class="mb-4">
+			<BreadcrumbList>
+				<BreadcrumbItem>
+					<BreadcrumbLink href="/users/{userId}/form-templates">
+						Form Templates
+					</BreadcrumbLink>
+				</BreadcrumbItem>
+				<BreadcrumbSeparator />
+				<BreadcrumbItem>
+					<BreadcrumbLink href="/users/{userId}/form-templates/{templateId}/dashboard">
+						{formData.title}
+					</BreadcrumbLink>
+				</BreadcrumbItem>
+				<BreadcrumbSeparator />
+				<BreadcrumbItem>
+					<BreadcrumbPage>Dashboard</BreadcrumbPage>
+				</BreadcrumbItem>
+			</BreadcrumbList>
+		</Breadcrumb>
+
 		<!-- HEADER -->
 		<DashboardHeader {formData} {userId} {templateId} />
 
