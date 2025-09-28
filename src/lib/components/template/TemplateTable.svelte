@@ -383,7 +383,7 @@
 						<td class="text-center">{(currentPage - 1) * itemsPerPage + index + 1}</td>
 						<td class="px-3 py-1 text-sm capitalize">
 							<a
-								href={`/users/${userId}/form-templates/${row.id}/dashboard`}
+								href={`/users/${userId}/forms/${row.id}/dashboard`}
 								class="hover:text-blue-500 hover:underline"
 							>
 								{row.Title || 'Not specified'}
@@ -414,7 +414,7 @@
 								<!-- Preview Button -->
 								<div class="relative">
 									<a
-										href="/users/{userId}/form-templates/{row.id}/preview"
+										href="/users/{userId}/forms/{row.id}/preview"
 										class="{getButtonClasses('ghost', 'sm')} p-2 h-10 w-10"
 										onmouseenter={() => hoveredButton = `preview-${row.id}`}
 										onmouseleave={() => hoveredButton = null}

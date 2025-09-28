@@ -24,14 +24,10 @@
 		{
 			label: 'Forms',
 			icon: 'material-symbols:description',
-			href: userId ? `/users/${userId}/form-templates` : '#',
-			isActive: () => page.url.pathname.includes('/form-templates') && !page.url.pathname.includes('/form-templates/')
+			href: userId ? `/users/${userId}/forms` : '#',
+			isActive: () => page.url.pathname.includes('/forms') && !page.url.pathname.includes('/forms/')
 		}
 	]);
-
-	function toggleSidebar() {
-		collapsed = !collapsed;
-	}
 
 	function navigateTo(href: string) {
 		if (href !== '#') {
@@ -43,23 +39,6 @@
 <!-- Sidebar -->
 <div class="flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 {collapsed ? 'w-20' : 'w-64'}">
 	<!-- Sidebar Header -->
-	<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-		{#if !collapsed}
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Navigation</h2>
-		{/if}
-		<button 
-			onclick={toggleSidebar}
-			class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-			title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-		>
-			<Icon 
-				icon={collapsed ? 'material-symbols:menu' : 'material-symbols:menu-open'} 
-				width="22" 
-				height="22" 
-				class="text-gray-600 dark:text-gray-400"
-			/>
-		</button>
-	</div>
 
 	<!-- Navigation Items -->
 	<nav class="flex-1 p-4">

@@ -396,13 +396,13 @@
                 <Breadcrumb.Root>
                     <Breadcrumb.List class="flex">
                         <Breadcrumb.Item>
-                            <Breadcrumb.Link href="/users/{userId}/form-templates">Templates</Breadcrumb.Link>
+                            <Breadcrumb.Link href="/users/{userId}/forms">Forms</Breadcrumb.Link>
                         </Breadcrumb.Item>
                         <Breadcrumb.Separator />
                         <Breadcrumb.Item>
-                            <Breadcrumb.Page>Question</Breadcrumb.Page>
+                            <Breadcrumb.Page>Form</Breadcrumb.Page>
                         </Breadcrumb.Item>
-                    </Breadcrumb.List>
+                    </Breadcrumb.List>	
                 </Breadcrumb.Root>
                 
                 <!-- <div class="ml-auto flex items-center">
@@ -417,7 +417,7 @@
             <div class="h-full w-full overflow-hidden">
                 {#if uiSections.length === 0}
                     <p class="text-center text-sm text-slate-500">
-                        Drag and drop sections, subsections, and question response type cards here
+                        Drag and drop sections, subsections, and field response type cards here
                     </p>
                 {/if}
                 <div

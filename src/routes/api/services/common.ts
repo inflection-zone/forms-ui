@@ -137,7 +137,6 @@ const handleResponse = (response: ApiResponse, url: string, method: string): voi
     // Detailed response logging
     console.log(style.response + ' ' + style.color(`from ${url}`));
 
-    // Skip logging full response for form-templates details endpoint (too large)
     if (!url.includes('/form-templates/') || !url.includes('/details')) {
         console.log(style.color('📄 Full Response:'), JSON.stringify(response, null, 2));
     } else {

@@ -43,14 +43,14 @@
 		// Handle specific tab actions
 		switch (tabId) {
 			case 'edit':
-				window.location.href = `/users/${userId}/form-templates/${templateId}/forms`;
+				window.location.href = `/users/${userId}/forms/${templateId}/forms`;
 				break;
 			case 'favorite':
 				handleFavoriteForm();
 				break;
 			case 'preview':
 				// Open preview in new tab
-				window.open(`/users/${userId}/form-templates/${templateId}/preview`, '_blank');
+				window.open(`/users/${userId}/forms/${templateId}/preview`, '_blank');
 				break;
 			case 'share':
 				// Handle share functionality

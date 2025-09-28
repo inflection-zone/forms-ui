@@ -2,8 +2,8 @@
 	import Icon from '@iconify/svelte';
 	import { page } from '$app/state';
 
-	// Props for user data
-	let { user = { name: 'User', role: 'Member' } } = $props();
+	// Props for user data and sidebar state
+	let { user = { name: 'User', role: 'Member' }, collapsed = $bindable(false) } = $props();
 
 	// State for dropdowns
 	let notificationsOpen = $state(false);
@@ -48,6 +48,10 @@
 		window.location.href = '/';
 	}
 
+	function toggleSidebar() {
+		collapsed = !collapsed;
+	}
+
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -56,9 +60,30 @@
 <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
 	<div class="px-4 sm:px-6 lg:px-8">
 		<div class="flex items-center justify-between h-16">
-			<!-- Left side - can be used for additional branding or controls -->
-			<div class="flex items-center">
-				<h1 class="text-xl font-semibold text-gray-900 dark:text-white">Form Builder</h1>
+			<!-- Left side - Sidebar toggle, separator, and branding -->
+			<div class="flex items-center space-x-4">
+				<!-- Sidebar Toggle Button -->
+				<button 
+					onclick={toggleSidebar}
+					class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+					title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+				>
+					<Icon 
+						icon={collapsed ? 'material-symbols:menu' : 'material-symbols:menu-open'} 
+						width="22" 
+						height="22" 
+						class="text-gray-600 dark:text-gray-400"
+					/>
+				</button>
+
+				<!-- Vertical Separator -->
+				<div class="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+
+				<!-- Form Builder Branding -->
+				<div class="flex items-center space-x-2">
+					<Icon icon="material-symbols:description" width="24" height="24" class="text-orange-600" />
+					<h1 class="text-xl font-semibold text-gray-900 dark:text-white">Form Builder</h1>
+				</div>
 			</div>
 
 			<!-- Right side - Navigation items -->

@@ -110,13 +110,13 @@ export const actions = {
 		if (response.Status === 'failure' || response.HttpCode !== 201) {
 			throw redirect(
 				303,
-				`/users/${userId}/form-templates`,
+				`/users/${userId}/forms`,
 			);
 		}
 
 		throw redirect(
 			303,
-			`/users/${userId}/form-templates/${templateId}/forms`,
+			`/users/${userId}/forms/${templateId}/forms`,
 			successMessage(`Form template created successfully!`),
 			event
 		);

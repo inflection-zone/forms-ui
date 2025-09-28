@@ -22,14 +22,14 @@
 					case 'home':
 						crumbs.push({ label: 'Home', href: '', active: true });
 						break;
-					case 'form-templates':
+					case 'forms':
 						if (pathParts.length === 3) {
-							crumbs.push({ label: 'Form Templates', href: '', active: true });
+							crumbs.push({ label: 'Forms', href: '', active: true });
 						} else if (pathParts[3] === 'new') {
-							crumbs.push({ label: 'Form Templates', href: `/users/${pathParts[1]}/form-templates`, active: false });
+							crumbs.push({ label: 'Forms', href: `/users/${pathParts[1]}/forms`, active: false });
 							crumbs.push({ label: 'New Template', href: '', active: true });
 						} else {
-							crumbs.push({ label: 'Form Templates', href: `/users/${pathParts[1]}/form-templates`, active: false });
+							crumbs.push({ label: 'Forms', href: `/users/${pathParts[1]}/forms`, active: false });
 							crumbs.push({ label: 'Template Details', href: '', active: true });
 						}
 						break;

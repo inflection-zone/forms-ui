@@ -122,11 +122,11 @@ export const actions = {
 
 	// 	if (response.Status === 'failure' || response.HttpCode !== 200) {
 	// 		// toast.error('Question has not been created');
-	// 		throw redirect(303, `/users/${userId}/form-templates/${templateId}`);
+	// 		throw redirect(303, `/users/${userId}/forms/${templateId}`);
 	// 	}
 
 	// 	// toast.success("Question added successfully!");
-	// 	throw redirect(303, `/users/${userId}/form-templates/${templateId}/forms`);
+	// 	throw redirect(303, `/users/${userId}/forms/${templateId}/forms`);
 	// },
 
 
@@ -156,6 +156,6 @@ export const actions = {
 	// 		throw redirect(303, `preview`);
 	// 	}
 	// 	// toast.success("Form section Added succeccsfully !")
-	// 	throw redirect(303, `/users/${userId}/form-templates/${templateId}/forms`,);
+	// 	throw redirect(303, `/users/${userId}/forms/${templateId}/forms`,);
 	// }
 };

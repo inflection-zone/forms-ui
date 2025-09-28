@@ -33,11 +33,11 @@
 
 	// Navigation functions
 	function navigateToTemplates() {
-		window.location.href = `/users/${userId}/form-templates`;
+		window.location.href = `/users/${userId}/forms`;
 	}
 
 	function navigateToNewTemplate() {
-		window.location.href = `/users/${userId}/form-templates/new`;
+		window.location.href = `/users/${userId}/forms/new`;
 	}
 
 	function navigateToSubmissions() {
@@ -95,7 +95,7 @@
 						class="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
 					>
 						<Icon icon="material-symbols:dashboard" class="mr-2" width="20" height="20" />
-						Manage Form Templates
+						Manage Forms
 					</button>
 					
 					<button 

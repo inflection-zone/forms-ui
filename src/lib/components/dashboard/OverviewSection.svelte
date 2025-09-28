@@ -24,7 +24,7 @@
 				headers: { 'Content-Type': 'application/json' }
 			});
 			if (response.ok) {
-				window.location.href = `/users/${userId}/form-templates`;
+				window.location.href = `/users/${userId}/forms`;
 			} else {
 				console.error('Failed to delete template');
 				alert('Failed to delete template. Please try again.');

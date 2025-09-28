@@ -22,7 +22,7 @@
 	<Breadcrumb.Root>
 		<Breadcrumb.List class="flex">
 			<Breadcrumb.Item>
-				<Breadcrumb.Link href="/users/{userId}/form-templates/{templateId}/dashboard">Form Template</Breadcrumb.Link>
+				<Breadcrumb.Link href="/users/{userId}/forms/{templateId}/dashboard">Form Template</Breadcrumb.Link>
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator />
 			<Breadcrumb.Item>

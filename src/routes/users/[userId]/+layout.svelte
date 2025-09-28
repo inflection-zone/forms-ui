@@ -19,7 +19,7 @@
 	const shouldShowSidebar = $derived(() => {
 		const currentPath = page.url.pathname;
 		// Don't show sidebar for templateId form builder pages
-		if (currentPath.includes('/form-templates/') && currentPath.split('/').length > 4) {
+		if (currentPath.includes('/forms/') && currentPath.split('/').length > 4) {
 			return false;
 		}
 		return true;
@@ -28,7 +28,7 @@
 
 <div class="flex flex-col h-screen">
 	<!-- Top Navigation -->
-	<TopNavigation {user} />
+	<TopNavigation {user} bind:collapsed={sidebarCollapsed} />
 
 	<!-- Main Layout -->
 	<div class="flex flex-1 overflow-hidden">

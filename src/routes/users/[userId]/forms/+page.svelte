@@ -77,9 +77,9 @@ async function handleTemplateUpdate(model) {
 	<div class="w-full p-6">
 		<div class="flex flex-col md:flex-row md:items-center mb-6">
 			<div>
-				<h2 class="text-lg font-bold tracking-tight md:text-2xl">Form Templates</h2>
+				<h2 class="text-lg font-bold tracking-tight md:text-2xl">Forms</h2>
 				<p class="text-sm text-muted-foreground md:text-base">
-					Manage and create your form templates
+					Manage and create your forms
 				</p>
 			</div>
 			<button 
