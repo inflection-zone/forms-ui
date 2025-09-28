@@ -187,61 +187,64 @@
 			{#if filteredTemplates().length > 0}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{#each filteredTemplates() as template (template.id)}
-						<div class="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-6 hover:shadow-md transition-shadow">
-							<!-- Template Header -->
-							<div class="flex items-start justify-between mb-4">
-								<div class="flex-1">
-									<h4 class="font-semibold text-gray-900 dark:text-white mb-1">
-										{template.title}
-									</h4>
-									<p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-										by {template.author}
-									</p>
-									{#if template.isPopular}
-										<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-											<Icon icon="material-symbols:text-fields" class="mr-1" width="12" height="12" />
-											Popular
-										</span>
-									{/if}
+						<div class="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-6 hover:shadow-md transition-shadow flex flex-col h-full">
+							<!-- Template Content (grows to fill space) -->
+							<div class="flex-1">
+								<!-- Template Header -->
+								<div class="flex items-start justify-between mb-4">
+									<div class="flex-1">
+										<h4 class="font-semibold text-gray-900 dark:text-white mb-1">
+											{template.title}
+										</h4>
+										<p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+											by {template.author}
+										</p>
+										{#if template.isPopular}
+											<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+												<Icon icon="material-symbols:text-fields" class="mr-1" width="12" height="12" />
+												Popular
+											</span>
+										{/if}
+									</div>
+									<div class="flex items-center space-x-1">
+										<span class="text-yellow-400 text-sm">{getStarRating(template.rating)}</span>
+										<span class="text-xs text-gray-500 dark:text-gray-400">({template.rating})</span>
+									</div>
 								</div>
-								<div class="flex items-center space-x-1">
-									<span class="text-yellow-400 text-sm">{getStarRating(template.rating)}</span>
-									<span class="text-xs text-gray-500 dark:text-gray-400">({template.rating})</span>
-								</div>
-							</div>
 
-							<!-- Template Description -->
-							<p class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-								{template.description}
-							</p>
+								<!-- Template Description -->
+								<p class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+									{template.description}
+								</p>
 
-							<!-- Template Meta Info -->
-							<div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-4">
-								<span class="flex items-center">
-									<Icon icon="material-symbols:text-fields" class="mr-1" width="12" height="12" />
-									{template.fields} fields
-								</span>
-								<span class="flex items-center">
-									<Icon icon="material-symbols:schedule" class="mr-1" width="12" height="12" />
-									{template.estimatedTime}
-								</span>
-								<span class="flex items-center">
-									<Icon icon="material-symbols:download" class="mr-1" width="12" height="12" />
-									{template.downloads}
-								</span>
-							</div>
-
-							<!-- Template Tags -->
-							<div class="flex flex-wrap gap-1 mb-4">
-								{#each template.tags.slice(0, 3) as tag}
-									<span class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-xs">
-										{tag}
+								<!-- Template Meta Info -->
+								<div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-4">
+									<span class="flex items-center">
+										<Icon icon="material-symbols:text-fields" class="mr-1" width="12" height="12" />
+										{template.fields} fields
 									</span>
-								{/each}
+									<span class="flex items-center">
+										<Icon icon="material-symbols:schedule" class="mr-1" width="12" height="12" />
+										{template.estimatedTime}
+									</span>
+									<span class="flex items-center">
+										<Icon icon="material-symbols:download" class="mr-1" width="12" height="12" />
+										{template.downloads}
+									</span>
+								</div>
+
+								<!-- Template Tags -->
+								<div class="flex flex-wrap gap-1 mb-4">
+									{#each template.tags.slice(0, 3) as tag}
+										<span class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-xs">
+											{tag}
+										</span>
+									{/each}
+								</div>
 							</div>
 
-							<!-- Template Actions -->
-							<div class="flex gap-2">
+							<!-- Template Actions (pinned to bottom) -->
+							<div class="flex gap-2 mt-auto">
 								<button
 									onclick={() => previewTemplate(template.id)}
 									class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
@@ -253,8 +256,8 @@
 									onclick={() => importTemplate(template.id)}
 									class="flex-1 inline-flex items-center justify-center px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium"
 								>
-									<Icon icon="material-symbols:text-fields" class="mr-1" width="16" height="16" />
-									{template.isFree ? 'Import' : `$${template.price}`}
+									<Icon icon="material-symbols:download" class="mr-1" width="16" height="16" />
+									Import
 								</button>
 							</div>
 						</div>
@@ -294,7 +297,7 @@
 							onclick={() => importTemplate(template.id)}
 							class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-orange-200 dark:border-orange-700 text-orange-600 dark:text-orange-400 rounded-lg font-medium hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors"
 						>
-							<Icon icon="material-symbols:text-fields" class="mr-2" width="20" height="20" />
+							<Icon icon="material-symbols:download" class="mr-2" width="20" height="20" />
 							{template.title}
 						</button>
 					{/each}
