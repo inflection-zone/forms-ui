@@ -32,6 +32,12 @@
 			icon: 'material-symbols:text-fields',
 			href: userId ? `/users/${userId}/template-explorer` : '#',
 			isActive: () => page.url.pathname.includes('/template-explorer')
+		},
+		{
+			label: 'Field Library',
+			icon: 'material-symbols:text-fields',
+			href: userId ? `/users/${userId}/field-libraries` : '#',
+			isActive: () => page.url.pathname.includes('/field-libraries')
 		}
 	]);
 

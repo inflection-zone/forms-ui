@@ -36,6 +36,26 @@
 					case 'template-explorer':
 						crumbs.push({ label: 'Template Explorer', href: '', active: true });
 						break;
+					case 'field-libraries':
+						if (pathParts.length === 3) {
+							crumbs.push({ label: 'Field Library', href: '', active: true });
+						} else if (pathParts[3] === 'custom') {
+							crumbs.push({ label: 'Field Library', href: `/users/${pathParts[1]}/field-libraries`, active: false });
+							if (pathParts[4] === 'new') {
+								crumbs.push({ label: 'Create Custom Field', href: '', active: true });
+							} else if (pathParts[4] === 'field-sets') {
+								crumbs.push({ label: 'Create Field Set', href: '', active: true });
+							} else if (pathParts[5] === 'edit') {
+								crumbs.push({ label: 'Custom Field', href: `/users/${pathParts[1]}/field-libraries/${pathParts[4]}`, active: false });
+								crumbs.push({ label: 'Edit', href: '', active: true });
+							} else {
+								crumbs.push({ label: 'Custom Field', href: '', active: true });
+							}
+						} else {
+							crumbs.push({ label: 'Field Library', href: `/users/${pathParts[1]}/field-libraries`, active: false });
+							crumbs.push({ label: 'Field Set Details', href: '', active: true });
+						}
+						break;
 					default:
 						crumbs.push({ label: pathParts[2].charAt(0).toUpperCase() + pathParts[2].slice(1), href: '', active: true });
 				}
