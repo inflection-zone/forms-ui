@@ -26,6 +26,12 @@
 			icon: 'material-symbols:description',
 			href: userId ? `/users/${userId}/forms` : '#',
 			isActive: () => page.url.pathname.includes('/forms') && !page.url.pathname.includes('/forms/')
+		},
+		{
+			label: 'Template Explorer',
+			icon: 'material-symbols:text-fields',
+			href: userId ? `/users/${userId}/template-explorer` : '#',
+			isActive: () => page.url.pathname.includes('/template-explorer')
 		}
 	]);
 

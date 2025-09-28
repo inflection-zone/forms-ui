@@ -105,14 +105,6 @@
 						<Icon icon="iconoir:input-field" class="mr-2" width="20" height="20" />
 						Explore Field Library
 					</button>
-					
-					<!-- <button 
-						onclick={navigateToAnalytics}
-						class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-					>
-						<Icon icon="material-symbols:analytics" class="mr-2" width="20" height="20" />
-						Analytics
-					</button> -->
 				</div>
 			</div>
 		</div>

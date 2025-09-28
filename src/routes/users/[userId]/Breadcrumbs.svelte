@@ -33,6 +33,9 @@
 							crumbs.push({ label: 'Template Details', href: '', active: true });
 						}
 						break;
+					case 'template-explorer':
+						crumbs.push({ label: 'Template Explorer', href: '', active: true });
+						break;
 					default:
 						crumbs.push({ label: pathParts[2].charAt(0).toUpperCase() + pathParts[2].slice(1), href: '', active: true });
 				}
