@@ -12,6 +12,9 @@
 	import { cleanAssessmentTemplate } from '$lib/utils';
 	import Icon from '@iconify/svelte';
 	import { IndexedDB } from '$lib/utils/indexedDB';
+	import { offlineSubmissionQueue } from '$lib/utils/offline-submission-queue';
+	import { offlineSyncManager } from '$lib/utils/offline-sync-manager';
+	import { legacyOfflineSyncManager } from '$lib/utils/legacy-offline-sync';
 	import { page } from '$app/state';
 
 	let { data }: { data: PageServerData } = $props();

@@ -11,6 +11,7 @@
 	import { IndexedDbStorageManager } from '$lib/utils/indexdb.store.manager';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import '$lib/utils/offline-submission-console';
 
 	///////////////////////////////////////////////////////////////////////////
 

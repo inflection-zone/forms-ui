@@ -8,6 +8,9 @@
 	import { invalidate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { IndexedDB } from '$lib/utils/indexedDB';
+	import { offlineSubmissionQueue } from '$lib/utils/offline-submission-queue';
+	import { offlineSyncManager } from '$lib/utils/offline-sync-manager';
+	import { legacyOfflineSyncManager } from '$lib/utils/legacy-offline-sync';
 	import { createSchema, questionResponseModels } from './apiFunctions';
 
 	const id = page.params.id;
@@ -180,7 +183,9 @@
 				})
 			});
 
+			console.log('API response status:', res.status);
 			const saveData = await res.json();
+			console.log('API response data:', saveData);
 			if (showToast) toastMessage(saveData);
 
 			await db.add({ id: SESSION_KEY, payload: { sessionId: code } });
@@ -208,16 +213,32 @@
 			const submissionTimestamp = new Date().toISOString();
 
 			if (!navigator.onLine) {
+				// Store in the existing IndexedDB for backward compatibility
 				await db.add({
 					id: STORAGE_KEY,
 					payload: {
 						intentToSubmit: true,
 						Token: id, // Use the original URL parameter instead of templateId,
 						FormData: structuredCloneSafe(answers),
-						submissionTimestamp
+						submissionTimestamp,
+						FormTemplateId: templateId
 					}
 				});
 				await db.add({ id: SESSION_KEY, payload: { sessionId: code } });
+
+				// Also store in the new offline submission queue
+				try {
+					await offlineSubmissionQueue.addSubmission({
+						formId: id,
+						formName: template?.name || 'Offline Form Submission',
+						submissionData: structuredCloneSafe(answers),
+						submissionTimestamp,
+						formType: 'offline',
+						pageUrl: window.location.href
+					});
+				} catch (error) {
+					console.error('Failed to add to offline submission queue:', error);
+				}
 
 				console.log('Cached for offline submission');
 				addToast({
