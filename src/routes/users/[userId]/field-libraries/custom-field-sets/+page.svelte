@@ -76,11 +76,11 @@
 	}
 
 	function createNewCustomField() {
-		window.location.href = `/users/${userId}/field-libraries/custom/new`;
+		window.location.href = `/users/${userId}/field-libraries/custom-field-sets/new`;
 	}
 
 	function editCustomField(fieldId: string) {
-		window.location.href = `/users/${userId}/field-libraries/custom/${fieldId}/edit`;
+		window.location.href = `/users/${userId}/field-libraries/custom-field-sets/${fieldId}`;
 	}
 
 	function getLayoutInfo(layoutId: string) {
@@ -120,6 +120,13 @@
 					</div>
 				</div>
 				<div class="flex items-center space-x-3">
+					<button 
+						onclick={() => window.location.href = `/users/${userId}/field-libraries/custom-field-sets/default/fields`}
+						class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+					>
+						<Icon icon="material-symbols:settings" class="mr-2" width="20" height="20" />
+						Manage Custom Fields
+					</button>
 					<button 
 						onclick={createNewCustomField}
 						class="inline-flex items-center px-4 py-2 border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 rounded-lg font-medium hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors"

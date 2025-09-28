@@ -1,17 +1,52 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
 	import { page } from '$app/state';
-	import type { PageData } from './$types';
-
-	let { data }: { data: PageData } = $props();
 
 	const userId = page.params.userId;
 	const fieldSetId = page.params.fieldSetId;
 
+	// Mock data for existing field set
+	const mockFieldSet = {
+		name: 'Healthcare Field Set',
+		description: 'Comprehensive healthcare form fields',
+		selectedFields: ['name', 'address', 'phone', 'email']
+	};
+
 	// State for form (initialized from existing field set)
-	let fieldSetName = $state(data.fieldSet.name);
-	let fieldSetDescription = $state(data.fieldSet.description);
-	let selectedFields = $state([...data.fieldSet.selectedFields]);
+	let fieldSetName = $state(mockFieldSet.name);
+	let fieldSetDescription = $state(mockFieldSet.description);
+	let selectedFields = $state([...mockFieldSet.selectedFields]);
+
+	// Mock basic field types data
+	const basicFieldTypes = [
+		{
+			category: 'Basic Info',
+			isNew: false,
+			fields: [
+				{ id: 'name', name: 'Name', type: 'text', icon: 'material-symbols:person', description: 'Full name input field' },
+				{ id: 'address', name: 'Address', type: 'address', icon: 'material-symbols:location-on', description: 'Complete address with validation' },
+				{ id: 'phone', name: 'Phone', type: 'tel', icon: 'material-symbols:phone', description: 'Phone number with formatting' },
+				{ id: 'email', name: 'Email', type: 'email', icon: 'material-symbols:email', description: 'Email address with validation' },
+				{ id: 'website', name: 'Website', type: 'url', icon: 'material-symbols:language', description: 'Website URL input' }
+			]
+		},
+		{
+			category: 'Textbox',
+			isNew: false,
+			fields: [
+				{ id: 'single-line', name: 'Single Line', type: 'text', icon: 'material-symbols:text-fields', description: 'Single line text input' },
+				{ id: 'multi-line', name: 'Multi Line', type: 'textarea', icon: 'material-symbols:notes', description: 'Multi-line text area' }
+			]
+		},
+		{
+			category: 'Number',
+			isNew: false,
+			fields: [
+				{ id: 'number', name: 'Number', type: 'number', icon: 'material-symbols:numbers', description: 'Numeric input field' },
+				{ id: 'currency', name: 'Currency', type: 'number', icon: 'material-symbols:attach-money', description: 'Currency amount input' }
+			]
+		}
+	];
 
 	// Helper functions
 	function toggleField(fieldId: string) {
@@ -80,7 +115,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit {data.fieldSet.name} - Field Library</title>
+	<title>Edit {mockFieldSet.name} - Field Library</title>
 </svelte:head>
 
 <div class="w-full bg-gray-50 dark:bg-gray-900">
@@ -98,7 +133,7 @@
 					</button>
 					<div>
 						<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-							Edit {data.fieldSet.name}
+							Edit {mockFieldSet.name}
 						</h1>
 						<p class="text-gray-600 dark:text-gray-400 mt-1">
 							Modify your custom field collection
@@ -169,8 +204,8 @@
 						<div class="max-h-40 overflow-y-auto bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
 							{#if selectedFields.length > 0}
 								<div class="space-y-2">
-									{#each selectedFields as fieldId}
-										{@const field = data.basicFieldTypes.flatMap(cat => cat.fields).find(f => f.id === fieldId)}
+								{#each selectedFields as fieldId}
+									{@const field = basicFieldTypes.flatMap(cat => cat.fields).find(f => f.id === fieldId)}
 										{#if field}
 											<div class="flex items-center justify-between text-sm">
 												<span class="text-gray-900 dark:text-white">{field.name}</span>
@@ -218,7 +253,7 @@
 			<!-- Field Selection Panel -->
 			<div class="lg:col-span-2">
 				<div class="space-y-6">
-					{#each data.basicFieldTypes as category}
+					{#each basicFieldTypes as category}
 						<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
 							<!-- Category Header -->
 							<div class="flex items-center justify-between mb-6">

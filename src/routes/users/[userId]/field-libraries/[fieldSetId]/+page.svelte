@@ -48,7 +48,7 @@
 
 	function editFieldSet() {
 		console.log('Editing field set:', fieldSetId);
-		window.location.href = `/users/${userId}/field-libraries/custom/${fieldSetId}/edit`;
+		window.location.href = `/users/${userId}/field-libraries/custom-field-sets/${fieldSetId}`;
 	}
 
 	function goBackToLibrary() {

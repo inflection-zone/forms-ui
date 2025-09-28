@@ -76,20 +76,24 @@
 	}
 
 	function previewFieldSet(fieldSet: FieldSet) {
-		// Navigate to detailed view instead of modal
-		window.location.href = `/users/${userId}/field-libraries/${fieldSet.id}`;
+		// Navigate to detailed view - different paths for custom vs regular field sets
+		if (fieldSet.isCustom) {
+			window.location.href = `/users/${userId}/field-libraries/custom-field-sets/${fieldSet.id}`;
+		} else {
+			window.location.href = `/users/${userId}/field-libraries/${fieldSet.id}`;
+		}
 	}
 
 	function createCustomFieldSet() {
-		window.location.href = `/users/${userId}/field-libraries/custom/field-sets`;
+		window.location.href = `/users/${userId}/field-libraries/custom-field-sets`;
 	}
 
 	function createCustomField() {
-		window.location.href = `/users/${userId}/field-libraries/custom/new`;
+		window.location.href = `/users/${userId}/field-libraries/custom-field-sets/new`;
 	}
 
 	function editFieldSet(fieldSetId: string) {
-		window.location.href = `/users/${userId}/field-libraries/custom/${fieldSetId}/edit`;
+		window.location.href = `/users/${userId}/field-libraries/custom-field-sets/${fieldSetId}`;
 	}
 
 	function deleteFieldSet(fieldSetId: string) {
