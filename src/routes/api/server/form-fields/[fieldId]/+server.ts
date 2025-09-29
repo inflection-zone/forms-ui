@@ -3,11 +3,11 @@ import { deleteQuestion, getQuestionById } from '../../../services/form-field';
 
 /////////////////////////////////////////////////////////////////////
 export const GET = async (event: RequestEvent) => {
-    const questionId = event.params.questionId;
+    const fieldId = event.params.fieldId;
 
     try {
         const response = await getQuestionById(
-            questionId,
+            fieldId,
         );
         return new Response(JSON.stringify(response));
     } catch (err) {
@@ -18,9 +18,9 @@ export const GET = async (event: RequestEvent) => {
 
 export const DELETE = async (event: RequestEvent) => {
     try {
-        const questionId = event.params.questionId;
-        console.log('Deleted form field id is:', questionId);
-        const response = await deleteQuestion(questionId);
+        const fieldId = event.params.fieldId;
+        console.log('Deleted form field id is:', fieldId);
+        const response = await deleteQuestion(fieldId);
         console.log('Deleted form field response is:', response);
         return new Response(JSON.stringify(response));
     } catch (error) {

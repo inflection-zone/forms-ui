@@ -20,6 +20,8 @@
 
 	let { data }: { data: PageServerData } = $props();
 
+	console.log(data,"I am from forms page");
+
 	let errors: Record<string, string> = $state({});
 
 	let typeOfQuestion: 'Basic' | 'HealthCare' | 'FieldLibrary' = $state('Basic');

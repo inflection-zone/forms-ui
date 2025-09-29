@@ -1,5 +1,5 @@
 import { BACKEND_API_URL, INTERNAL_API_KEY, TOKEN } from '$env/static/private';
-import { delete_, get_, post_, put_ } from './common';
+import { delete_, get_, post_, put_, getBlob_ } from './common';
 
 //////////////////////////////////////////////////////////////
 
@@ -150,19 +150,5 @@ export const deleteFormTemplate = async (formTemplateId: string) => {
 
 export const exportFormTemplates = async (formTemplateIdId: string) => {
 	const url = BACKEND_API_URL + `/form-templates/${formTemplateIdId}/export`;
-	// const session = await SessionManager.getSession(sessionId);
-	// const accessToken = session.accessToken;
-	const headers = {};
-	headers['Content-Type'] = 'application/json';
-	headers['x-api-key'] = INTERNAL_API_KEY;
-	headers['Authorization'] = `Bearer ${TOKEN}`;
-	const res = await fetch(url, {
-		method: 'GET',
-		headers
-	});
-	if (!res.ok) {
-		throw new Error(`Failed to export care plan: ${res.statusText}`);
-	}
-	const blob = await res.blob();
-	return blob;
+	return await getBlob_(url);
 };
