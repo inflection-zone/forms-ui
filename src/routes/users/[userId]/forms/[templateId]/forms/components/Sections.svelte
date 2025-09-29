@@ -8,6 +8,7 @@
 	import { formComponents } from './response.types/index';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import { writable } from 'svelte/store';
+	import Self from './Sections.svelte';
 	////////////////////////////////////////////////////////////////////////////
 
 	let {
@@ -249,7 +250,7 @@
 				</div>
 
 				{#if section.Subsections.length > 0}
-					<Sections
+					<Self
 						bind:uiSections={section.Subsections}
 						{handleDragAndDrop}
 						{highlightedSection}

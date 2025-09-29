@@ -131,6 +131,31 @@ export const delete_ = async (url: string) => {
     }
 };
 
+export const getBlob_ = async (url: string) => {
+    try {
+        const headers = await setHeaders();
+        const style = logStyles.GET;
+
+        // Request logging
+        console.log(style.request + ' ' + style.color(`Request URL: ${url}`));
+
+        const res = await fetch(url, { method: 'GET', headers });
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch blob: ${res.statusText}`);
+        }
+
+        const blob = await res.blob();
+        console.log(style.response + ' ' + style.color(`from ${url}`));
+        console.log(style.color('📄 Blob Response: [Binary data]'));
+
+        return blob;
+    } catch (err) {
+        handleError(err, url, 'GET');
+        throw error(500, 'An error occurred while processing the GET blob request');
+    }
+};
+
 const handleResponse = (response: ApiResponse, url: string, method: string): void | null => {
     const style = logStyles[method as keyof typeof logStyles];
 
@@ -162,7 +187,7 @@ const handleError = (err: unknown, url: string, method: string): void => {
 };
 
 
-const setHeaders = async () => {
+export const setHeaders = async () => {
     try {
         const headers = {
             'x-api-key': INTERNAL_API_KEY
