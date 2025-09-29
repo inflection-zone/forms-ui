@@ -153,6 +153,7 @@ export const DELETE = async (event: RequestEvent) => {
 
 export const PUT = async (event: RequestEvent) => {
     try {
+        console.log("in the try of update question card ")
         const request = event.request;
         const data = await request.json();
 
@@ -168,6 +169,8 @@ export const PUT = async (event: RequestEvent) => {
                 Errors: Object.fromEntries(Object.entries(result.error.flatten().fieldErrors).map(([key, val]) => [key, val?.[0] || ''])),
             }));
         }
+
+        console.log("before calling service",data)
         const response = await updateQuestion(
             data.id,
             data.Title,
@@ -176,7 +179,7 @@ export const PUT = async (event: RequestEvent) => {
             data.Score,
             data.CorrectAnswer,
             data.Hint,
-            data.QuestionImageUrl,
+            data.ImageResourceId,
             data.Options,
             data.RangeMin,
             data.RangeMax,

@@ -9,6 +9,9 @@
 	import SkipLogicIntegration from '$lib/components/skip-logic/SkipLogicIntegration.svelte';
 	import CalculationLogicIntegration from '$lib/components/calculation-logic/CalculationLogicIntegration.svelte';
 	import Icon from '@iconify/svelte';
+	import { toastMessage } from '$lib/components/toast/toast.store';
+	import type { ImageUploadModel } from '../../file-upload/file-upload-model';
+	import { imageUploadSchema } from '../../file-upload/file-upload-schema';
 
 	//////////////////////////////////////////////////////////////////////////////
 
@@ -18,6 +21,68 @@
 		handleQuestionCardUpdate,
 		questionList
 	} = $props();
+	let imageUrl = $state(questionCard.QuestionImageUrl)
+	let imageResourceId = $state(questionCard.ImageResourceId)
+
+	const onFileSelected = async (e) => {
+		const input = e.target as HTMLInputElement;
+    	const file = input.files?.[0];
+
+		const fileCreateModel: ImageUploadModel = {
+			UploadFile: file,
+			FileName: file.name,
+			FileType: file.type
+		};
+
+		const fileValidationResult = imageUploadSchema.safeParse(fileCreateModel);
+		console.log('validation result of file', fileValidationResult);
+
+		if (!fileValidationResult.success) {
+			errors = Object.fromEntries(
+				Object.entries(fileValidationResult.error.flatten().fieldErrors).map(([key, val]) => [
+					key,
+					val?.[0] || 'This field is required'
+				])
+			);
+			return;
+		}
+
+		const formData = new FormData();
+		formData.append('file', file);
+		formData.append('filename', file.name);
+
+		try {
+			const res = await fetch(`/api/server/file-upload/upload`, {
+				method: 'POST',
+				body: formData
+			});
+
+			const response = await res.json();
+			imageUrl = response.Data.FileResources[0].Url;
+			if (response.HttpCode === 201 || response.HttpCode === 200) {
+				const imageResourceId_ = response.Data.FileResources[0].id;
+				console.log('ImageResource', imageResourceId_);
+				if (imageResourceId_) {
+					imageResourceId = imageResourceId_;
+					return true;
+				}
+				console.log('imageResourceId', imageResourceId);
+
+				toastMessage(response);
+				return;
+			}
+
+			if (response.Errors) {
+				errors = response?.Errors || {};
+			} else {
+				toastMessage(response);
+			}
+		} catch (error) {
+			console.error('Error uploading file:', error);
+
+			toastMessage();
+		}
+	};
 
 	async function handleSubmit(event) {
 		event.preventDefault();
@@ -31,7 +96,7 @@
 			Score: questionCard.Score,
 			CorrectAnswer: questionCard.CorrectAnswer,
 			Hint: questionCard.Hint,
-			QuestionImageUrl: questionCard.QuestionImageUrl,
+			ImageResourceId: imageResourceId,
 			IsRequired: questionCard.IsRequired
 		};
 
@@ -120,8 +185,9 @@
 			<div class="relative my-2 grid grid-cols-12 items-center gap-4">
 				<Label class="col-span-11 ">Question Image Url</Label>
 			</div>
-			<Input bind:value={questionCard.QuestionImageUrl} />
-			<p class="text-destructive">{errors?.QuestionImageUrl}</p>
+			
+			<Input name="file" type="file" bind:value={questionCard.ImageResourceId} onchange={async (e) => await onFileSelected(e)} />
+			<p class="text-destructive">{errors?.ImageResourceId}</p>
 
 			<!-- VALIDATION LOGIC INTEGRATION -->
 			<ValidationLogicIntegration bind:questionCard {questionList} />

@@ -31,9 +31,9 @@ export const questionSchema = z.object({
 		.nullable()
 		.optional(),
 
-	QuestionImageUrl: z
+		ImageResourceId: z
 		.string()
-		.url({ message: "Invalid URL format for the image." })
+		// .url({ message: "Invalid URL format for the image." })
 		.nullable()
 		.optional(),
 
