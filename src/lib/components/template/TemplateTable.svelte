@@ -261,6 +261,29 @@
 	function toggleMenu(id) {
 		activeMenu = activeMenu === id ? null : id;
 	}
+
+	async function exportFormTemplate(templateId: string, templateTitle: string) {
+		const response = await fetch(`/api/server/template/export`, {
+			method: 'POST',
+			body: JSON.stringify({
+				// sessionId,
+				templateId: templateId,
+			}),
+			headers: { 'content-type': 'application/json' }
+		});
+		if (!response.ok) {
+			throw new Error(`Failed to export care plan: ${response.statusText}`);
+		}
+
+		const filename = `${templateTitle}.json`;
+		const blob = await response.blob();
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(blob);
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+	}
 </script>
 
 <div class="my-4 flex items-center justify-between">
@@ -400,6 +423,17 @@
 												</AlertDialog.Footer>
 											</AlertDialog.Content>
 										</AlertDialog.Root>
+
+										<div>
+											<Button
+												variant="ghost"
+												class="w-36 justify-start"
+												onclick={() => exportFormTemplate(row.id, row.Title)}
+											>
+												<Icon icon="lucide:download" width="20" height="20" />
+												<span>Export</span>
+											</Button>
+										</div>
 
 										<AlertDialog.Root bind:open>
 											<AlertDialog.Trigger class="{buttonVariants({ variant: 'ghost' })} w-36 justify-start">
