@@ -1,40 +1,28 @@
-FROM node:20.11-alpine3.18 AS builder
-
+# ---- Build Stage ----
+FROM node:24.8-alpine3.21 AS builder
 WORKDIR /app
-COPY . .
 
-RUN npm install -g typescript
-RUN npm install
+COPY package*.json .
+RUN npm ci
+
+COPY . .
 RUN npm run build
 
-#######################################
-
-FROM node:20.11-alpine3.18
-
-RUN apk add bash
-RUN apk add --no-cache \
-        python3 \
-        aws-cli \
-    && rm -rf /var/cache/apk/*
-RUN apk add --update alpine-sdk
-
-RUN apk update
-RUN apk upgrade
-
+# ---- Runtime Stage ----
+FROM node:24.8-alpine3.21 AS runtime
 WORKDIR /app
-# RUN rm -rf ./*
 
-COPY --from=builder ./app/ ./
+RUN apk add --no-cache aws-cli \
+ && rm -rf /var/cache/apk/*
 
-RUN npm install
+RUN npm install -g pm2
 
-ARG ORIGIN
-ENV ORIGIN=${ORIGIN}
+COPY package.json .
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/build ./build
 
-ARG ENVIRONMENT
-ENV ENVIRONMENT=${ENVIRONMENT}
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
 
-RUN chmod +x /app/entrypoint.sh
-RUN dos2unix /app/entrypoint.sh
-ENTRYPOINT ["/bin/bash", "-c", "/app/entrypoint.sh $ENVIRONMENT"]
-
+EXPOSE 3000
+ENTRYPOINT ["./entrypoint.sh"]
