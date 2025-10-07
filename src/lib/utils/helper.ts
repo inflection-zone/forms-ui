@@ -1,4 +1,6 @@
 
+import * as mimeType from 'mime-types';
+
 export class Helper {
 
     static isEmail = (str: string): boolean => {
@@ -169,6 +171,10 @@ export class Helper {
 
     static downloadAsInlineObjectUrl = (response) => {
         return Helper.dataURLtoBlob(response.Data.Buffer);
+    };
+
+    static getMimeTypeFromFileName = (fileName) => {
+        return mimeType.lookup(fileName);
     };
 
     static getFileExtensionFromMimeType = (mimeType) => {

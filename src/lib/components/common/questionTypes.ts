@@ -344,7 +344,7 @@ export interface QuestionUpdateModel {
     CorrectAnswer?: string;
     Hint?: string;
     Options?: QuestionOption[];
-    QuestionImageUrl?: string;
+    ImageResourceId?: string;
     RangeMin?: number;
     RangeMax?: number;
     IsRequired?: boolean;
